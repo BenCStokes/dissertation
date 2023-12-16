@@ -1,0 +1,4 @@
+(executable
+ (public_name dissertation)
+ (name main)
+ (libraries dissertation))
