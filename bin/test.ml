@@ -24,3 +24,7 @@ type t =
     threads : thread list;
     assertion : condition list;
   }
+
+let pp_assertion fmt = function
+  | [] -> Format.fprintf fmt "<empty>"
+  | conditions -> Format.fprintf fmt "%s" @@ String.concat " & " (List.map (fun (RegisterAssertion (reg, v)) -> Printf.sprintf "X%d = %Ld" reg v) conditions)
