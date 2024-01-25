@@ -42,12 +42,20 @@ let apply_first_rotation cycle = (* start on a new location *)
   let rotation_point = Option.value ~default:0 (find_rotation_point 1 None cycle) in
   rotate rotation_point cycle
 
-let apply_second_rotation cycle = (* start on a new processor *)
+let apply_second_rotation cycle = (* start on a new processor, if possible *)
   let rec find_rotation_point index = function
     | [] -> 0
     | (rel, _)::_ when processor_info rel = External -> index
     | _::cycle -> find_rotation_point (index + 1) cycle in
   let rotation_point = find_rotation_point 1 cycle in
+  let rotation_point = if rotation_point = 0 then (* only one processor: don't end on po *)
+    let rec count_pos_at_end count = function
+      | [] -> count
+      | (ProgramOrder (_, _, _), _)::cycle -> count_pos_at_end (count+1) cycle
+      | _::cycle -> count_pos_at_end 0 cycle in
+    List.length cycle - count_pos_at_end 0 cycle
+  else
+    rotation_point in
   rotate rotation_point cycle
 
 let locations_from_cycle =

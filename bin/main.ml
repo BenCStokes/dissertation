@@ -1,8 +1,8 @@
 open Cycle
 open Gen
 
-(*let cycle = [FromRead (`Aliased, Internal); ProgramOrder (`Aliased, Write, Read)]*)
-let cycle = [FromRead (`Aliased, External); ReadsFrom (`Same, External); ProgramOrder (`Aliased, Read, Read)]
+let cycle = [FromRead (`Aliased, Internal); ProgramOrder (`Aliased, Write, Read)] (* CoWR.alias *)
+(*let cycle = [FromRead (`Aliased, External); ReadsFrom (`Same, External); ProgramOrder (`Aliased, Read, Read)]*) (* CoRR0.alias+po *)
 
 let test = test_from_cycle cycle
 
