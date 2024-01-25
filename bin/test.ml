@@ -63,7 +63,7 @@ module Printer(Arch : Arch.Sig) = struct
     StringSet.iter (Format.fprintf fmt "    *%s = 0;\n") test.physical_addresses;
     Format.fprintf fmt "\"\"\"\n\n";
 
-    List.iteri (pp_thread fmt) test.threads;
+    List.iteri (pp_thread fmt) (List.rev test.threads);
 
     Format.fprintf fmt "[final]\n";
     Format.fprintf fmt "assertion = \"%a\"" pp_assertion test.assertion
