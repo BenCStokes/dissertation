@@ -1,4 +1,4 @@
-module type Arch = sig
+module type Sig = sig
   val name : string
 
   type register (* general purpose register *)
