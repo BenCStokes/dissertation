@@ -101,9 +101,10 @@ let rec setup_page_tables test = function
 
 (* TODO build up instructions lists then reverse at the end *)
 (* TODO refactor all the repeated code here *)
-let generate_test cycle write_values locations =
+let generate_test name cycle write_values locations =
   let open Test in
   let test = {
+    name = name;
     virtual_addresses = StringSet.empty;
     physical_addresses = StringSet.empty;
     initial_mappings = StringMap.empty;
@@ -207,7 +208,7 @@ let generate_test cycle write_values locations =
       } in
   IntMap.fold add_ws_assertion writes_by_location test
 
-let test_from_cycle cycle =
+let test_from_cycle name cycle =
   let lhs_types = List.map lhs_type cycle in
   let rhs_types = List.map rhs_type cycle in
   if not (lhs_rhs_types_match lhs_types rhs_types) then raise BadCycle else
@@ -215,5 +216,4 @@ let test_from_cycle cycle =
   let locations = locations_from_cycle cycle in
   let cycle = apply_second_rotation (zip cycle locations) in
   let write_values = assign_write_values (List.map fst cycle) in
-  generate_test cycle write_values locations
-  (* Add write serialisation constraints: condition for 2 writes to some pa, or observer thread for more *)
+  generate_test name cycle write_values locations
