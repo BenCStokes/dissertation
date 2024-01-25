@@ -6,7 +6,7 @@ let lhs_rhs_types_match lhs_types rhs_types = match (lhs_types, rhs_types) with
   | (first_lhs::lhs_types, rhs_types) ->
     let rec go lhs_types rhs_types = begin match (lhs_types, rhs_types) with
       | ([], [last_rhs]) -> last_rhs = first_lhs
-      | (l::lhs_types, r::rhs_types) -> l == r && go lhs_types rhs_types
+      | (l::lhs_types, r::rhs_types) -> l = r && go lhs_types rhs_types
       | _ -> failwith "lists expected to match in length" end in
     go lhs_types rhs_types
   | _ -> raise BadCycle (* empty *)
@@ -69,7 +69,7 @@ let assign_write_values cycle =
     | [] -> []
     | rel::cycle -> match rel with
       | ProgramOrder (loc_flag, Write, _) -> ws :: go cycle (if loc_flag = `Diff then 1 else ws + 1)
-      | ReadsFrom _ -> ws :: go cycle (ws + 1)
+      | ReadsFrom _ | WriteSerialisation _ -> ws :: go cycle (ws + 1)
       | FromRead _ | ProgramOrder (_, Read, _) -> go cycle ws in
   go cycle 1
 
@@ -95,6 +95,7 @@ let rec setup_page_tables test = function
     setup_page_tables { test with virtual_addresses; physical_addresses; initial_mappings } locations
 
 (* TODO build up instructions lists then reverse at the end *)
+(* TODO refactor all the repeated code here *)
 let generate_test cycle write_values locations =
   let open Test in
   let test = {
@@ -108,8 +109,8 @@ let generate_test cycle write_values locations =
   let write_values = match cycle with
     | (rel, _)::_ when lhs_type rel = Write -> write_values @ [List.hd write_values]
     | _ -> write_values in
-  let rec go test cycle write_values loc_diff proc_diff = match cycle with
-    | [] -> test
+  let rec go test cycle write_values loc_diff proc_diff writes_by_location = match cycle with
+    | [] -> (test, writes_by_location)
     | (rel, (pa, va))::cycle -> match rel with
       | ProgramOrder (loc_flag, Write, _) ->
         let thread = List.hd test.threads in
@@ -121,7 +122,8 @@ let generate_test cycle write_values locations =
           new_reg setup (VirtualAddress va_name) in
         let instructions = thread.instructions @ [Store (value_reg, loc_reg)] in
         let threads = { setup; instructions } :: List.tl test.threads in
-        go ({ test with threads }) cycle (List.tl write_values) loc_flag Internal
+        let writes_by_location = IntMap.update pa (function | None -> Some (List.hd write_values) | Some n -> Some (max n (List.hd write_values))) writes_by_location in
+        go ({ test with threads }) cycle (List.tl write_values) loc_flag Internal writes_by_location
       | ProgramOrder (loc_flag, Read, _) ->
         let thread = List.hd test.threads in
         let (setup, result_to) = new_reg thread.setup (Constant 0L) in
@@ -132,7 +134,7 @@ let generate_test cycle write_values locations =
           new_reg setup (VirtualAddress va_name) in
         let instructions = thread.instructions @ [Load (result_to, loc_reg)] in
         let threads = { setup; instructions } :: List.tl test.threads in
-        go ({ test with threads }) cycle write_values loc_flag Internal
+        go ({ test with threads }) cycle write_values loc_flag Internal writes_by_location
       | FromRead (loc_flag, proc_flag) ->
         let thread = List.hd test.threads in
         let (setup, result_to) = new_reg thread.setup (Constant 0L) in
@@ -146,7 +148,7 @@ let generate_test cycle write_values locations =
           | Internal -> { setup; instructions } :: List.tl test.threads
           | External -> new_thread :: { setup; instructions } :: List.tl test.threads in
         let assertion = RegisterAssertion (List.length test.threads - 1, result_to, Int64.of_int (List.hd write_values - 1)) :: test.assertion in
-        go ({ test with threads; assertion }) cycle write_values (loc_flag :> location_flag) proc_flag
+        go ({ test with threads; assertion }) cycle write_values (loc_flag :> location_flag) proc_flag writes_by_location
       | ReadsFrom (loc_flag, proc_flag) ->
         let thread = List.hd test.threads in
         let (setup, value_reg) = new_reg thread.setup (Constant (Int64.of_int @@ List.hd write_values)) in
@@ -160,9 +162,45 @@ let generate_test cycle write_values locations =
           | Internal -> ({ setup; instructions } :: List.tl test.threads, IntMap.cardinal setup)
           | External -> (new_thread :: { setup; instructions } :: List.tl test.threads, 0) in
         let assertion = RegisterAssertion (List.length threads - 1, read_to, Int64.of_int (List.hd write_values)) :: test.assertion in
-        go ({ test with threads; assertion }) cycle (List.tl write_values) (loc_flag :> location_flag) proc_flag in
-  let test = go test cycle write_values `Diff External in
-  if List.hd test.threads = new_thread then { test with threads = List.tl test.threads } else test
+        let writes_by_location = IntMap.update pa (function | None -> Some (List.hd write_values) | Some n -> Some (max n (List.hd write_values))) writes_by_location in
+        go ({ test with threads; assertion }) cycle (List.tl write_values) (loc_flag :> location_flag) proc_flag writes_by_location
+      | WriteSerialisation (loc_flag, proc_flag) -> 
+        let thread = List.hd test.threads in
+        let (setup, value_reg) = new_reg thread.setup (Constant (Int64.of_int @@ List.hd write_values)) in
+        let va_name = Printf.sprintf "pa_%d_va_%d" pa va in
+        let (setup, loc_reg) = if loc_diff = `Same && proc_diff = Internal then
+          (setup, fst (List.find (fun (_, v) -> v = VirtualAddress va_name) (IntMap.bindings setup)))
+        else
+          new_reg setup (VirtualAddress va_name) in
+        let instructions = thread.instructions @ [Store (value_reg, loc_reg)] in
+        let threads = match proc_flag with
+          | Internal -> { setup; instructions } :: List.tl test.threads
+          | External -> new_thread :: { setup; instructions } :: List.tl test.threads in
+          let writes_by_location = IntMap.update pa (function | None -> Some (List.hd write_values) | Some n -> Some (max n (List.hd write_values))) writes_by_location in
+          go ({ test with threads }) cycle (List.tl write_values) (loc_flag :> location_flag) proc_flag writes_by_location in
+  let (test, writes_by_location) = go test cycle write_values `Diff External IntMap.empty in
+  let test = if List.hd test.threads = new_thread then { test with threads = List.tl test.threads } else test in
+  let add_ws_assertion pa writes test =
+    let pa_name = "pa_" ^ string_of_int pa in
+    if writes < 2 then
+      test
+    else if writes = 2 then
+      let assertion = LocationAssertion (pa_name, Int64.of_int 2) :: test.assertion in
+      { test with assertion }
+    else (* TODO find a cycle to test this on *)
+      let va_name = Format.sprintf "pa_%d_observer" pa in
+      let rec make_instructions i instructions =
+        let instructions = Instruction.Load (i, 0) :: instructions in
+        if i = 1 then instructions else make_instructions (i - 1) instructions in
+      let observer = { setup = IntMap.singleton 0 (VirtualAddress va_name); instructions = make_instructions writes [] } in
+      let thread_id = List.length test.threads in
+      { test with
+          threads = observer :: test.threads;
+          virtual_addresses = StringSet.add va_name test.virtual_addresses;
+          initial_mappings = StringMap.add va_name pa_name test.initial_mappings;
+          assertion = test.assertion @ List.init writes (fun i -> RegisterAssertion (thread_id, i + 1, i + 1 |> Int64.of_int))
+      } in
+  IntMap.fold add_ws_assertion writes_by_location test
 
 let test_from_cycle cycle =
   let lhs_types = List.map lhs_type cycle in
