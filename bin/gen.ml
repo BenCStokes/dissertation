@@ -56,7 +56,12 @@ let apply_second_rotation cycle = (* start on a new processor, if possible *)
     List.length cycle - count_pos_at_end 0 cycle
   else
     rotation_point in
-  rotate rotation_point cycle
+  let cycle = rotate rotation_point cycle in
+  (*let rec find_better_rotation_point index = function
+    | [] -> 0
+    | (rel, _)::_ when processor_info rel = External && location_info rel = `Diff -> index
+    | _::cycle -> find_better_rotation_point (index + 1) cycle in
+  rotate (find_better_rotation_point 1 cycle)*) cycle
 
 let locations_from_cycle =
   let rec go initial = function
