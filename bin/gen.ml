@@ -81,7 +81,7 @@ let assign_write_values cycle =
     | rel::cycle -> match rel with
       | ProgramOrder (loc_flag, Write, _) -> ws :: go cycle (if loc_flag = `Diff then 1 else ws + 1)
       | ReadsFrom _ | WriteSerialisation _ -> ws :: go cycle (ws + 1)
-      | FromRead _ | ProgramOrder (_, Read, _) | MakeTranslation _ -> go cycle ws in
+      | FromRead _ | ProgramOrder (_, Read, _) | MakeTranslation _ -> go cycle (if location_info rel = `Diff then 1 else ws) in
   rotate rotate_by (go cycle 1)
 
 let rec zip xs ys = match (xs, ys) with
