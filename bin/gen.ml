@@ -70,13 +70,19 @@ let locations_from_cycle =
   go (0, 0)
 
 let assign_write_values cycle =
+  let rec count_ws_at_end count = function
+    | [] -> count
+    | (WriteSerialisation _)::cycle -> count_ws_at_end (count+1) cycle
+    | _::cycle -> count_ws_at_end 0 cycle in
+  let rotate_by = count_ws_at_end 0 cycle in
+  let cycle = rotate (List.length cycle - rotate_by) cycle in
   let rec go cycle ws = match cycle with
     | [] -> []
     | rel::cycle -> match rel with
       | ProgramOrder (loc_flag, Write, _) -> ws :: go cycle (if loc_flag = `Diff then 1 else ws + 1)
       | ReadsFrom _ | WriteSerialisation _ -> ws :: go cycle (ws + 1)
       | FromRead _ | ProgramOrder (_, Read, _) | MakeTranslation _ -> go cycle ws in
-  go cycle 1
+  rotate rotate_by (go cycle 1)
 
 let rec zip xs ys = match (xs, ys) with
   | (x::xs, y::ys) -> (x, y) :: zip xs ys
