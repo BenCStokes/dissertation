@@ -2,6 +2,8 @@ open Format
 
 type initial_value = Constant of int64
                    | VirtualAddress of string
+                   | PTE of string
+                   | MkDesc of string
 
 
 let pp_hex_constant fmt n =
@@ -13,6 +15,8 @@ let pp_hex_constant fmt n =
 let pp_initial_value fmt = function
   | Constant n -> fprintf fmt "extz(%a, 64)" pp_hex_constant n
   | VirtualAddress address -> fprintf fmt "%s" address
+  | PTE va -> fprintf fmt "pte3(%s, page_table_base)" va
+  | MkDesc pa -> fprintf fmt "mkdesc3(oa=%s)" pa
 
 module IntMap = Map.Make(Int)
 module StringMap = Map.Make(String)
@@ -21,10 +25,11 @@ module StringSet = Set.Make(String)
 type thread =
   {
     setup : initial_value IntMap.t;
-    instructions: Instruction.t list
+    instructions : Instruction.t list;
+    handler : (int * string) option; (* TODO: fix this representation *)
   }
 
-let new_thread = { setup = IntMap.empty; instructions = [] }
+let new_thread = { setup = IntMap.empty; instructions = []; handler = None; }
 
 type condition = RegisterAssertion of int * int * int64
                | LocationAssertion of string * int64
@@ -35,6 +40,7 @@ type t =
     virtual_addresses : StringSet.t;
     physical_addresses : StringSet.t;
     initial_mappings : string StringMap.t;
+    possible_mappings : string StringMap.t;
     threads : thread list;
     assertion : condition list;
   }
@@ -56,7 +62,18 @@ module Printer(Arch : Arch.Sig) = struct
 
     fprintf fmt "[thread.%d.reset]\n" index;
     IntMap.iter (fun reg value -> fprintf fmt "R%d = \"%a\"\n" reg pp_initial_value value) thread.setup;
-    fprintf fmt "\n"
+    fprintf fmt "\n";
+    begin match thread.handler with
+      | None -> ()
+      | Some (addr, _) -> fprintf fmt "VBAR_EL1 = \"extz(%#x, 64)\"\n\n" (addr - 0x400)
+    end;
+
+    match thread.handler with
+      | None -> ()
+      | Some (addr, code) ->
+        fprintf fmt "[section.thread%d_el1_handler]\n" index;
+        fprintf fmt "address = \"%#x\"\n" addr;
+        fprintf fmt "code = \"\"\"\n%s\"\"\"\n\n" code
 
   let pp_test fmt test =
     fprintf fmt "arch = \"%s\"\n" Arch.name;
@@ -66,7 +83,9 @@ module Printer(Arch : Arch.Sig) = struct
     fprintf fmt "page_table_setup = \"\"\"\n";
     fprintf fmt "    physical %s;\n" (StringSet.elements test.physical_addresses |> String.concat " ");
     StringMap.iter (fprintf fmt "    %s |-> %s;\n") test.initial_mappings;
+    StringMap.iter (fprintf fmt "    %s ?-> %s;\n") test.possible_mappings;
     StringSet.iter (fprintf fmt "    *%s = 0;\n") test.physical_addresses;
+    List.iter (fun thread -> match thread.handler with | None -> () | Some (addr, _) -> fprintf fmt "    identity %#x with code;\n" (addr - 0x400)) test.threads;
     fprintf fmt "\"\"\"\n\n";
 
     List.iteri (pp_thread fmt) (List.rev test.threads);
