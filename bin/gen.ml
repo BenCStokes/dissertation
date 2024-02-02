@@ -175,7 +175,8 @@ let generate_test name cycle write_values locations =
         let (threads, read_to) = match proc_flag with
           | Internal -> ({ thread with setup; instructions } :: List.tl test.threads, IntMap.cardinal setup)
           | External -> (new_thread :: { thread with setup; instructions } :: List.tl test.threads, 0) in
-        let assertion = RegisterAssertion (List.length threads - 1, read_to, Int64.of_int (List.hd write_values)) :: test.assertion in
+        let thread_num = if cycle = [] && proc_flag = External then 0 else List.length threads - 1 in
+        let assertion = RegisterAssertion (thread_num, read_to, Int64.of_int (List.hd write_values)) :: test.assertion in
         let writes_by_location = IntMap.update pa (function | None -> Some (List.hd write_values) | Some n -> Some (max n (List.hd write_values))) writes_by_location in
         go ({ test with threads; assertion }) cycle (List.tl write_values) (loc_flag :> location_flag) proc_flag writes_by_location
       | WriteSerialisation (loc_flag, proc_flag) -> 
@@ -210,7 +211,7 @@ let generate_test name cycle write_values locations =
           | Internal -> { setup; instructions; handler } :: List.tl test.threads
           | External -> new_thread :: { setup; instructions; handler } :: List.tl test.threads in
           (* let writes_by_location = IntMap.update pa (function | None -> Some (List.hd write_values) | Some n -> Some (max n (List.hd write_values))) writes_by_location in *)
-        let thread_num = if cycle = [] && proc_flag = External then 0 else List.length test.threads - 1 in
+        let thread_num = if cycle = [] && proc_flag = External then 0 else List.length threads - 1 in
         let assertion = RegisterAssertion (thread_num, read_result_reg, 0L) :: test.assertion in
         go ({ test with threads; initial_mappings; possible_mappings; assertion }) cycle write_values `Diff proc_flag writes_by_location in
   let (test, writes_by_location) = go test cycle write_values `Diff External IntMap.empty in
