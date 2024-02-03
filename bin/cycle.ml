@@ -1,7 +1,10 @@
 type location_flag = [`Same | `Diff | `Aliased]
 type same_pa_location_flag = [`Same | `Aliased]
+type translation_location_flag = [`Same | `Diff]
 
-type event_type_flag = Read | Write
+type event_type_flag = Read | Write | TranslationWrite
+
+type translation_write_flag = Make | Break
 
 type processor_flag = Internal | External
 
@@ -9,8 +12,7 @@ type relation = ProgramOrder of location_flag * event_type_flag * event_type_fla
               | FromRead of same_pa_location_flag * processor_flag
               | ReadsFrom of same_pa_location_flag * processor_flag
               | WriteSerialisation of same_pa_location_flag * processor_flag
-              | MakeTranslation of processor_flag
-              (* | BreakTranslation of *)
+              | TranslationReadsFrom of processor_flag * translation_write_flag
               (* ... *)
 
 let location_flag_of_char = function
@@ -28,12 +30,18 @@ let same_pa_location_flag_of_char = function
 let event_type_flag_of_char = function
   | 'R' -> Read
   | 'W' -> Write
+  | 'T' -> TranslationWrite
   | c -> raise (Invalid_argument (Printf.sprintf "Invalid event type flag: %c" c))
 
 let processor_flag_of_char = function
   | 'i' -> Internal
   | 'e' -> External
   | c -> raise (Invalid_argument (Printf.sprintf "Invalid processor flag: %c" c))
+
+let translation_write_flag_of_char = function
+  | 'm' -> Make
+  | 'b' -> Break
+  | c -> raise (Invalid_argument (Printf.sprintf "Invalid translation write flag: %c" c))
 
 let parse_relation s =
   if String.starts_with ~prefix:"Po" s then
@@ -44,8 +52,8 @@ let parse_relation s =
     ReadsFrom (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
   else if String.starts_with ~prefix:"Ws" s || String.starts_with ~prefix:"Co" s then
     WriteSerialisation (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
-  else if String.starts_with ~prefix:"Mt" s then
-    MakeTranslation (processor_flag_of_char s.[2])
+  else if String.starts_with ~prefix:"Trf" s then
+    TranslationReadsFrom (processor_flag_of_char s.[3], translation_write_flag_of_char s.[4])
   else
     raise (Invalid_argument ("Invalid relation: " ^ s))
 
@@ -56,27 +64,27 @@ let lhs_type = function
   | FromRead _ -> Read
   | ReadsFrom _ -> Write
   | WriteSerialisation _ -> Write
-  | MakeTranslation _ -> Write
+  | TranslationReadsFrom _ -> TranslationWrite
 
 let rhs_type = function
   | ProgramOrder (_, _, rhs_type) -> rhs_type
   | FromRead _ -> Write
   | ReadsFrom _ -> Read
   | WriteSerialisation _ -> Write
-  | MakeTranslation _ -> Read
+  | TranslationReadsFrom _ -> Read
 
 let processor_info = function
   | ProgramOrder (_, _, _) -> Internal
   | FromRead (_, info)
   | ReadsFrom (_, info)
   | WriteSerialisation (_, info)
-  | MakeTranslation info -> info
+  | TranslationReadsFrom (info, _) -> info
 
 let location_info = function
   | ProgramOrder (info, _, _) -> info
   | FromRead (info, _)
   | ReadsFrom (info, _)
   | WriteSerialisation (info, _) -> (info :> location_flag)
-  | MakeTranslation _ -> `Diff
+  | TranslationReadsFrom _ -> `Same
 
 type t = relation list

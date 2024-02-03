@@ -75,6 +75,17 @@ module Printer(Arch : Arch.Sig) = struct
         fprintf fmt "address = \"%#x\"\n" addr;
         fprintf fmt "code = \"\"\"\n%s\"\"\"\n\n" code
 
+  let print_types fmt test =
+    let to_location = function
+      | LocationAssertion (loc, _) -> Some loc
+      | _ -> None in
+    let locations = List.filter_map to_location test.assertion in
+    if locations <> [] then begin
+      fprintf fmt "[types]\n";
+      List.iter (fprintf fmt "\"%s\" = \"uint64_t\"\n") locations;
+      fprintf fmt "\n"
+    end
+
   let pp_test fmt test =
     fprintf fmt "arch = \"%s\"\n" Arch.name;
     fprintf fmt "name = \"%s\"\n" test.name;
@@ -87,6 +98,8 @@ module Printer(Arch : Arch.Sig) = struct
     StringSet.iter (fprintf fmt "    *%s = 0;\n") test.physical_addresses;
     List.iter (fun thread -> match thread.handler with | None -> () | Some (addr, _) -> fprintf fmt "    identity %#x with code;\n" (addr - 0x400)) test.threads;
     fprintf fmt "\"\"\"\n\n";
+
+    print_types fmt test;
 
     List.iteri (pp_thread fmt) (List.rev test.threads);
 
