@@ -273,8 +273,9 @@ let generate_test name orig cycle write_values translation_write_flags locations
         let handler = Some (0x1000 * (thread_id + 1) + 0x400, Printf.sprintf "    MOV X%d,#1\n\n    MRS X13,ELR_EL1\n    ADD X13,X13,#4\n    MSR ELR_EL1,X13\n    ERET\n" result_to) in
         let instructions = thread.instructions @ [Load (result_to, loc_reg)] in
         let threads = match proc_flag with
-          | Internal -> { setup; instructions; handler } :: List.tl test.threads
-          | External -> new_thread :: { setup; instructions; handler } :: List.tl test.threads in
+          | Internal -> { thread with setup; instructions } :: List.tl test.threads
+          | External -> new_thread :: { thread with setup; instructions } :: List.tl test.threads in
+        let threads = { (List.hd threads) with handler } :: List.tl threads in
         let expected = match translation_write_flag with
           | Make -> 1L
           | Break -> 0L in
