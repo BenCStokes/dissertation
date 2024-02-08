@@ -11,14 +11,18 @@ let test = test_from_cycle cycle*)
 
 let usage = "testgen [-name <name>] -cycle <cycle>"
 let cycle = ref []
+let orig = ref ""
 let test_name = ref "PLACEHOLDER"
 let args = [
   "-name", Arg.Set_string test_name, "The name of the test";
-  "-cycle", Arg.Rest_all (fun tokens -> cycle := List.map Cycle.parse_relation tokens), "The cycle to generate the test from";
+  "-cycle", Arg.Rest_all (fun tokens ->
+    cycle := List.map Cycle.parse_relation tokens;
+    orig := String.concat " " tokens),
+    "The cycle to generate the test from";
 ]
 let () = Arg.parse args (fun arg -> print_endline ("Ignored anonymous argument: " ^ arg)) usage
 
 module TestPrinter = Test.Printer(AArch64)
 let () =
-  let test = test_from_cycle !test_name !cycle in
+  let test = test_from_cycle !test_name !orig !cycle in
   Format.printf "%a\n" TestPrinter.pp_test test

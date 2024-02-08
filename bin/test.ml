@@ -37,6 +37,7 @@ type condition = RegisterAssertion of int * int * int64
 type t =
   {
     name: string;
+    cycle: string;
     virtual_addresses : StringSet.t;
     physical_addresses : StringSet.t;
     initial_mappings : string StringMap.t;
@@ -89,6 +90,7 @@ module Printer(Arch : Arch.Sig) = struct
   let pp_test fmt test =
     fprintf fmt "arch = \"%s\"\n" Arch.name;
     fprintf fmt "name = \"%s\"\n" test.name;
+    fprintf fmt "orig = \"%s\"\n" test.cycle;
     fprintf fmt "symbolic = [%s]\n\n" (StringSet.elements test.virtual_addresses |> List.map (fun va -> "\"" ^ va ^ "\"") |> String.concat ", ");
 
     fprintf fmt "page_table_setup = \"\"\"\n";
