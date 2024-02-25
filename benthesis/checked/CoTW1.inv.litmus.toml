@@ -1,0 +1,40 @@
+arch = "AArch64"
+name = "CoTW1.inv"
+orig = "PosRT Trfim"
+symbolic = ["pa_0_va_0"]
+
+page_table_setup = """
+    physical pa_0;
+    pa_0_va_0 |-> invalid;
+    pa_0_va_0 ?-> pa_0;
+    *pa_0 = 0;
+    identity 0x1000 with code;
+"""
+
+[thread.0]
+code = """
+    LDR X0,[X1]
+    STR X2,[X3]
+"""
+
+[thread.0.reset]
+R0 = "extz(0x0, 64)"
+R1 = "pa_0_va_0"
+R2 = "mkdesc3(oa=pa_0)"
+R3 = "pte3(pa_0_va_0, page_table_base)"
+
+VBAR_EL1 = "extz(0x1000, 64)"
+
+[section.thread0_el1_handler]
+address = "0x1400"
+code = """
+    MOV X0,#1
+
+    MRS X13,ELR_EL1
+    ADD X13,X13,#4
+    MSR ELR_EL1,X13
+    ERET
+"""
+
+[final]
+assertion = "0:X0 = 0"
