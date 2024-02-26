@@ -58,7 +58,7 @@ module Printer(Arch : Arch.Sig) = struct
   let pp_thread fmt index thread =
     fprintf fmt "[thread.%d]\n" index;
     fprintf fmt "code = \"\"\"\n";
-    List.iter (fun instruction -> Arch.to_concrete_instruction instruction |> fprintf fmt "    %a\n" Arch.print_asm) thread.instructions;
+    List.iter (fun instruction -> Arch.to_concrete_instructions instruction |> List.iter (fprintf fmt "    %a\n" Arch.print_asm)) thread.instructions;
     fprintf fmt "\"\"\"\n\n";
 
     fprintf fmt "[thread.%d.reset]\n" index;

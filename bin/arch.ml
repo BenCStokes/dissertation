@@ -7,7 +7,7 @@ module type Sig = sig
 
   type instruction
 
-  val to_concrete_instruction : Instruction.t -> instruction
+  val to_concrete_instructions : Instruction.t -> instruction list
 
   val print_asm : Format.formatter -> instruction -> unit
 end
