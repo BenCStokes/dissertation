@@ -14,7 +14,7 @@ type instruction = STR of register * register
                  | DSB of Instruction.arm_barrier_param
                  | ISB
                  | CBNZ of register * int
-                 | ADD of register * register * int
+                 | ADD of register * register * register
                  | EOR of register * register * register
                  (* ... *)
 
@@ -26,7 +26,7 @@ let to_concrete_instructions = let open Instruction in function
   | ArmISBEquiv -> [ISB]
   | ControlDependency reg -> [CBNZ (id_to_register reg, 4)]
   | DataDependency (reg1, reg2)
-  | AddressDependency (reg1, reg2) -> [EOR (Register 14, id_to_register reg1, id_to_register reg1); ADD (id_to_register reg2, Register 14, 0)]
+  | AddressDependency (reg1, reg2) -> [EOR (Register 14, id_to_register reg1, id_to_register reg1); ADD (id_to_register reg2, id_to_register reg2, Register 14)]
 
 let pp_barrier_param fmt = let open Instruction in function
   | SY -> fprintf fmt "SY"
@@ -38,5 +38,5 @@ let print_asm fmt = function
   | DSB param -> fprintf fmt "DSB %a" pp_barrier_param param
   | ISB -> fprintf fmt "ISB"
   | CBNZ (reg, offset) -> fprintf fmt "CBNZ %a,.+%d" pp_register reg offset
-  | ADD (dst, src, imm) -> fprintf fmt "ADD %a,%a,#%d" pp_register dst pp_register src imm
+  | ADD (dst, src1, src2) -> fprintf fmt "ADD %a,%a,%a" pp_register dst pp_register src1 pp_register src2
   | EOR (dst, lhs, rhs) -> fprintf fmt "EOR %a,%a,%a" pp_register dst pp_register lhs pp_register rhs

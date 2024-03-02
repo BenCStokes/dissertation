@@ -1,5 +1,5 @@
 CoWR.alias: PoaWR Frai
-#MP.alias3+rfi-data+dmb: Rfai (Data dependency, not aliased) Rfse (DMB.SY barrier) Frse
+MP.alias3+rfi-data+dmb: Rfai DpDatadW Rfse DMB.SYdRR Frse
 PPOCA.alias: DMB.SYdWW Rfse DpCtrldW Rfai DpAddrdR Frse
 CoWTf.inv+po: PosTR Tfrim
 #CoRpteTf.inv+po: Rf, Po from read of PTE to ordinary read, Tfreb
