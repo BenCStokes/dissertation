@@ -37,6 +37,6 @@ let print_asm fmt = function
   | DMB param -> fprintf fmt "DMB %a" pp_barrier_param param
   | DSB param -> fprintf fmt "DSB %a" pp_barrier_param param
   | ISB -> fprintf fmt "ISB"
-  | CBNZ (reg, offset) -> fprintf fmt "CBNZ %a,#%d" pp_register reg offset
+  | CBNZ (reg, offset) -> fprintf fmt "CBNZ %a,.+%d" pp_register reg offset
   | ADD (dst, src, imm) -> fprintf fmt "ADD %a,%a,#%d" pp_register dst pp_register src imm
   | EOR (dst, lhs, rhs) -> fprintf fmt "EOR %a,%a,%a" pp_register dst pp_register lhs pp_register rhs

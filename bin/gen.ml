@@ -198,8 +198,21 @@ let generate_test name orig cycle write_values translation_write_flags locations
         let instructions = thread.instructions @ Load (result_to, loc_reg) :: specs in
         let threads = { thread with setup; instructions } :: List.tl test.threads in
         go ({ test with threads }) cycle write_values translation_write_flags loc_flag Internal writes_by_location
-      | Dependency (_dependency_type, _loc_flag, _) ->
-        failwith "Dependency"
+      | Dependency (dependency_type, loc_flag, _) ->
+        let thread = List.hd test.threads in
+        let (setup, result_to) = new_reg thread.setup (Constant 0L) in
+        let va_name = Printf.sprintf "pa_%d_va_%d" pa va in
+        let (setup, loc_reg) = if loc_diff = `Same && proc_diff = Internal then
+          (setup, fst (List.find (fun (_, v) -> v = VirtualAddress va_name) (IntMap.bindings setup)))
+        else
+          new_reg setup (VirtualAddress va_name) in
+        let dependency_instructions = match dependency_type with
+          | Control -> [Instruction.ControlDependency result_to]
+          | Data -> [Instruction.DataDependency (result_to, IntMap.cardinal setup)]
+          | Address -> [Instruction.AddressDependency (result_to, 1 + IntMap.cardinal setup)] in (* FIXME wrong address sometimes *)
+        let instructions = thread.instructions @ Load (result_to, loc_reg) :: dependency_instructions in
+        let threads = { thread with setup; instructions } :: List.tl test.threads in
+        go ({ test with threads }) cycle write_values translation_write_flags loc_flag Internal writes_by_location
       | ProgramOrder (_, TranslationWrite, _) ->
         let thread = List.hd test.threads in
         let pa_name = Printf.sprintf "pa_%d" pa in
