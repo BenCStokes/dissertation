@@ -1,0 +1,31 @@
+CoWR.alias: PoaWR Frai
+#MP.alias3+rfi-data+dmb: Rfai (Data dependency, not aliased) Rfse (DMB.SY barrier) Frse
+PPOCA.alias: DMB.SYdWW Rfse DpCtrldW Rfai DpAddrdR Frse
+CoWTf.inv+po: PosTR Tfrim
+#CoRpteTf.inv+po: Rf, Po from read of PTE to ordinary read, Tfreb
+LB.TT.inv+pos: PodRT Trfem PodRT Trfem
+CoTW1.inv: PosRT Trfim
+CoWTf.inv+dsb-isb: DSB.SY+ISBsTR Tfrim
+CoTTf.inv+dsb-isb: Trfem DMB.SY+ISBsRR Tfrem
+#CoRpteTf.inv+dsb-isb: Rfe barrier Tfre
+#CoTTf.inv+ctrl-isb (ignore the EOR): Trfe, control dependency + ISB, Tfre
+#CoRpteTf.inv+addr: Rfe, address dependency, Tfre
+CoWTf.inv+dmb: DMB.SYsTR Tfrim
+#R.TR.inv+dmb+trf: any even number is an invalid entry (including 2); DMB Coe Trfi Frae
+#MP.RTf.inv+dmb+ctrl: DMB, Rfse, Control dependency, Tfre
+#MP.RT.inv+dmb+ctrl-trfi: DMB, Rfse, control dependency, Trfi, Frae
+#WRC.TRTf.inv+po+dsb-isb: Trfe, PodRW, Rfse, DSB-ISB, Tfre
+#WRC.RRTf.inv+dmb+dsb-isb: start with Rf instead of Trf, as above
+#WRC.TRR.inv+po+dsb (assertion negated? But this cycle is the intended one): Trfem PodRW Rfse DSB.SYdRR Frse
+CoWinvT+po: PosTR Tfrib
+# Section 8.5: same but break rather than make (mostly?)
+CoWinvT+dsb-isb: DSB.SY+ISBsTR Tfrib
+#MP.RT.inv+polocdmb+ctrl-isb: Coi DMB Rfe Control+isb (inverse Trf* - mini extension?)
+CoTfT+dsb-isb: Trfeb DSB.SY+ISBsRR Tfreb
+#CoWinvT.EL1+dsbtlbi-dsb-isb: TLBI kind of like a read of x, DSBsTLBI, DSB+ISB, Tfri
+#CoWinvT.EL1+tlbidsb-isb: variant of the above
+#MP.RT.EL1+dsb-tlbiisdsb+dsb-isb: DSBs to this specific kind of TLBI, DSB, Rfe, DSB+ISB, Tfre
+#RBS+dsb-tlbiis-dsb: f1 first. Tfre, DSBsTLBI, DSB, Rfe, inverse of intra-instruction
+#RBS+dsb-tlbiisdsb+poloc: same but thread 1 reads x twice
+#BBM+dsb-tlbiis-dsb (no cycle connecting e to f): Tfre 
+#Make it into MP shape: add another write to y at the bottom of thread 0 and read it at the beginning of thread 1, to make it a cycle
