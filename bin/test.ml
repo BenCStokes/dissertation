@@ -31,7 +31,12 @@ type thread =
 
 let new_thread = { setup = IntMap.empty; instructions = []; handler = None; }
 
-type condition = RegisterAssertion of int * int * int64
+module AssertionValue = struct
+  type t = Constant of int64
+         | PTE of string
+end
+
+type condition = RegisterAssertion of int * int * AssertionValue.t
                | LocationAssertion of string * int64
 
 type t =
@@ -47,7 +52,8 @@ type t =
   }
 
 let pp_condition = function
-  | RegisterAssertion (proc, reg, v) -> sprintf "%d:X%d = %Ld" proc reg v
+  | RegisterAssertion (proc, reg, AssertionValue.Constant v) -> sprintf "%d:X%d = %Ld" proc reg v
+  | RegisterAssertion (proc, reg, AssertionValue.PTE pa) -> sprintf "%d:X%d = mkdesc3(oa=%s)" proc reg pa
   | LocationAssertion (loc, v) -> sprintf "*%s = %Ld" loc v
 
 let pp_assertion fmt = function

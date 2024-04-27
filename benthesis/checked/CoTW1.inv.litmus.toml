@@ -1,6 +1,6 @@
 arch = "AArch64"
 name = "CoTW1.inv"
-orig = "PosRT Trfim"
+orig = "PosRW Trfim"
 symbolic = ["pa_0_va_0"]
 
 page_table_setup = """

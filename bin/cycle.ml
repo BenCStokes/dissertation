@@ -1,8 +1,8 @@
 type location_flag = [`Same | `Diff | `Aliased]
 type same_pa_location_flag = [`Same | `Aliased]
-type translation_location_flag = [`Same | `Diff]
+type translation_location_flag = [`Same | `Diff] (* TODO: git blame this *)
 
-type event_type_flag = Read | Write | TranslationWrite
+type event_type_flag = Read | Write
 
 type translation_write_flag = Make | Break
 
@@ -35,7 +35,6 @@ let same_pa_location_flag_of_char = function
 let event_type_flag_of_char = function
   | 'R' -> Read
   | 'W' -> Write
-  | 'T' -> TranslationWrite
   | c -> raise (Invalid_argument (Printf.sprintf "Invalid event type flag: %c" c))
 
 let processor_flag_of_char = function
@@ -103,9 +102,13 @@ let lhs_type = function
   | FromRead _ -> Read
   | ReadsFrom _ -> Write
   | WriteSerialisation _ -> Write
-  | TranslationReadsFrom _ -> TranslationWrite
+  | TranslationReadsFrom _ -> Write
   | TranslationFromRead _ -> Read
   | Dependency _ -> Read
+
+let lhs_must_be_at_pte = function
+  | TranslationReadsFrom _ -> true
+  | _ -> false
 
 let rhs_type = function
   | ProgramOrder (_, _, rhs_type) | Barrier (_, _, rhs_type, _) | Dependency (_, _, rhs_type) -> rhs_type
@@ -113,7 +116,11 @@ let rhs_type = function
   | ReadsFrom _ -> Read
   | WriteSerialisation _ -> Write
   | TranslationReadsFrom _ -> Read
-  | TranslationFromRead _ -> TranslationWrite
+  | TranslationFromRead _ -> Write
+
+let rhs_must_be_at_pte = function
+  | TranslationFromRead _ -> true
+  | _ -> false
 
 let processor_info = function
   | ProgramOrder _ | Barrier _ | Dependency _ -> Internal

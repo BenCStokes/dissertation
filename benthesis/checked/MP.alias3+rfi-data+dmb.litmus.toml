@@ -1,0 +1,46 @@
+arch = "AArch64"
+name = "MP.alias3+rfi-data+dmb"
+orig = "Rfai DpDatadW Rfse DMB.SYdRR Frse"
+symbolic = ["pa_0_va_0", "pa_1_va_0", "pa_1_va_1"]
+
+page_table_setup = """
+    physical pa_0 pa_1;
+    pa_0_va_0 |-> pa_0;
+    pa_1_va_0 |-> pa_1;
+    pa_1_va_1 |-> pa_1;
+    *pa_0 = 0;
+    *pa_1 = 0;
+"""
+
+[thread.0]
+code = """
+    LDR X0,[X1]
+    DMB SY
+    LDR X2,[X3]
+"""
+
+[thread.0.reset]
+R0 = "extz(0x0, 64)"
+R1 = "pa_0_va_0"
+R2 = "extz(0x0, 64)"
+R3 = "pa_1_va_0"
+
+[thread.1]
+code = """
+    STR X0,[X1]
+    LDR X2,[X3]
+    EOR X14,X2,X2
+    ADD X4,X4,X14
+    STR X4,[X5]
+"""
+
+[thread.1.reset]
+R0 = "extz(0x1, 64)"
+R1 = "pa_1_va_0"
+R2 = "extz(0x0, 64)"
+R3 = "pa_1_va_1"
+R4 = "extz(0x1, 64)"
+R5 = "pa_0_va_0"
+
+[final]
+assertion = "0:X0 = 1 & 1:X2 = 1 & 0:X2 = 0"

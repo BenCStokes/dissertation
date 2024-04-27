@@ -1,38 +1,39 @@
 arch = "AArch64"
-name = "LB.TT.inv+pos"
-orig = "PodRW Trfem PodRW Trfem"
+name = "WRC.TRTf.inv+po+dsb-isb"
+orig = "Trfem PodRW Rfse DSB.SY+ISBdRR Tfrem"
 symbolic = ["pa_0_va_0", "pa_1_va_0"]
 
 page_table_setup = """
     physical pa_0 pa_1;
-    pa_0_va_0 |-> invalid;
+    pa_0_va_0 |-> pa_0;
     pa_1_va_0 |-> invalid;
-    pa_0_va_0 ?-> pa_0;
     pa_1_va_0 ?-> pa_1;
     *pa_0 = 0;
     *pa_1 = 0;
-    identity 0x2000 with code;
+    identity 0x3000 with code;
     identity 0x1000 with code;
 """
 
 [thread.0]
 code = """
     LDR X0,[X1]
-    STR X2,[X3]
+    DSB SY
+    ISB
+    LDR X2,[X3]
 """
 
 [thread.0.reset]
 R0 = "extz(0x0, 64)"
 R1 = "pa_0_va_0"
-R2 = "mkdesc3(oa=pa_1)"
-R3 = "pte3(pa_1_va_0, page_table_base)"
+R2 = "extz(0x0, 64)"
+R3 = "pa_1_va_0"
 
 VBAR_EL1 = "extz(0x1000, 64)"
 
 [section.thread0_el1_handler]
 address = "0x1400"
 code = """
-    MOV X0,#1
+    MOV X2,#1
 
     MRS X13,ELR_EL1
     ADD X13,X13,#4
@@ -42,20 +43,29 @@ code = """
 
 [thread.1]
 code = """
+    STR X0,[X1]
+"""
+
+[thread.1.reset]
+R0 = "mkdesc3(oa=pa_1)"
+R1 = "pte3(pa_1_va_0, page_table_base)"
+
+[thread.2]
+code = """
     LDR X0,[X1]
     STR X2,[X3]
 """
 
-[thread.1.reset]
+[thread.2.reset]
 R0 = "extz(0x0, 64)"
 R1 = "pa_1_va_0"
-R2 = "mkdesc3(oa=pa_0)"
-R3 = "pte3(pa_0_va_0, page_table_base)"
+R2 = "extz(0x1, 64)"
+R3 = "pa_0_va_0"
 
-VBAR_EL1 = "extz(0x2000, 64)"
+VBAR_EL1 = "extz(0x3000, 64)"
 
-[section.thread1_el1_handler]
-address = "0x2400"
+[section.thread2_el1_handler]
+address = "0x3400"
 code = """
     MOV X0,#1
 
@@ -66,4 +76,4 @@ code = """
 """
 
 [final]
-assertion = "0:X0 = 0 & 1:X0 = 0"
+assertion = "0:X0 = 1 & 2:X0 = 0 & 0:X2 = 1"

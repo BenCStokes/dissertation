@@ -1,6 +1,6 @@
 arch = "AArch64"
-name = "CoWTf.inv+po"
-orig = "PosWR Tfrim"
+name = "CoRpteTf.inv+po"
+orig = "Rfse PosRR Tfrem"
 symbolic = ["pa_0_va_0"]
 
 page_table_setup = """
@@ -13,12 +13,12 @@ page_table_setup = """
 
 [thread.0]
 code = """
-    STR X0,[X1]
+    LDR X0,[X1]
     LDR X2,[X3]
 """
 
 [thread.0.reset]
-R0 = "mkdesc3(oa=pa_0)"
+R0 = "extz(0x0, 64)"
 R1 = "pte3(pa_0_va_0, page_table_base)"
 R2 = "extz(0x0, 64)"
 R3 = "pa_0_va_0"
@@ -36,5 +36,14 @@ code = """
     ERET
 """
 
+[thread.1]
+code = """
+    STR X0,[X1]
+"""
+
+[thread.1.reset]
+R0 = "mkdesc3(oa=pa_0)"
+R1 = "pte3(pa_0_va_0, page_table_base)"
+
 [final]
-assertion = "0:X2 = 1"
+assertion = "0:X0 = mkdesc3(oa=pa_0) & 0:X2 = 1"

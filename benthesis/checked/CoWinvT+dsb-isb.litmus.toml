@@ -1,12 +1,12 @@
 arch = "AArch64"
-name = "CoWTf.inv+po"
-orig = "PosWR Tfrim"
+name = "CoWinvT+dsb-isb"
+orig = "DSB.SY+ISBsWR Tfrib"
 symbolic = ["pa_0_va_0"]
 
 page_table_setup = """
     physical pa_0;
-    pa_0_va_0 |-> invalid;
-    pa_0_va_0 ?-> pa_0;
+    pa_0_va_0 |-> pa_0;
+    pa_0_va_0 ?-> invalid;
     *pa_0 = 0;
     identity 0x1000 with code;
 """
@@ -14,11 +14,13 @@ page_table_setup = """
 [thread.0]
 code = """
     STR X0,[X1]
+    DSB SY
+    ISB
     LDR X2,[X3]
 """
 
 [thread.0.reset]
-R0 = "mkdesc3(oa=pa_0)"
+R0 = "extz(0x0, 64)"
 R1 = "pte3(pa_0_va_0, page_table_base)"
 R2 = "extz(0x0, 64)"
 R3 = "pa_0_va_0"
@@ -37,4 +39,4 @@ code = """
 """
 
 [final]
-assertion = "0:X2 = 1"
+assertion = "0:X2 = 0"

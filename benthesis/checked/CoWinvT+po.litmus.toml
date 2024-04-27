@@ -1,6 +1,6 @@
 arch = "AArch64"
 name = "CoWinvT+po"
-orig = "PosTR Tfrib"
+orig = "PosWR Tfrib"
 symbolic = ["pa_0_va_0"]
 
 page_table_setup = """
@@ -19,7 +19,7 @@ code = """
 
 [thread.0.reset]
 R0 = "extz(0x0, 64)"
-R1 = "pa_0_va_0"
+R1 = "pte3(pa_0_va_0, page_table_base)"
 R2 = "extz(0x0, 64)"
 R3 = "pa_0_va_0"
 

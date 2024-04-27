@@ -1,6 +1,6 @@
 arch = "AArch64"
-name = "CoWTf.inv+po"
-orig = "PosWR Tfrim"
+name = "CoWTf.inv+dmb"
+orig = "DMB.SYsWR Tfrim"
 symbolic = ["pa_0_va_0"]
 
 page_table_setup = """
@@ -14,6 +14,7 @@ page_table_setup = """
 [thread.0]
 code = """
     STR X0,[X1]
+    DMB SY
     LDR X2,[X3]
 """
 

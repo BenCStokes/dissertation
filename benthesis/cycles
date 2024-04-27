@@ -1,27 +1,27 @@
 CoWR.alias: PoaWR Frai
 MP.alias3+rfi-data+dmb: Rfai DpDatadW Rfse DMB.SYdRR Frse
 PPOCA.alias: DMB.SYdWW Rfse DpCtrldW Rfai DpAddrdR Frse
-CoWTf.inv+po: PosTR Tfrim
-#CoRpteTf.inv+po: Rf, Po from read of PTE to ordinary read, Tfreb [need PTE reads]
-LB.TT.inv+pos: PodRT Trfem PodRT Trfem
-CoTW1.inv: PosRT Trfim
-CoWTf.inv+dsb-isb: DSB.SY+ISBsTR Tfrim
-CoTTf.inv+dsb-isb: Trfem DMB.SY+ISBsRR Tfrem
-#CoRpteTf.inv+dsb-isb: Rfe barrier Tfre [need PTE reads]
+CoWTf.inv+po: PosWR Tfrim
+CoRpteTf.inv+po: Rfse PosRR Tfrem
+LB.TT.inv+pos: PodRW Trfem PodRW Trfem
+CoTW1.inv: PosRW Trfim
+CoWTf.inv+dsb-isb: DSB.SY+ISBsWR Tfrim
+#CoTTf.inv+dsb-isb: Trfem DSB.SY+ISBsRR Tfrem
+CoRpteTf.inv+dsb-isb: Rfse DSB.SY+ISBsRR Tfrem
 #CoTTf.inv+ctrl-isb (ignore the EOR): Trfe, control dependency + ISB, Tfre [need combined Dpd/barriers]
-#CoRpteTf.inv+addr: Rfe, address dependency, Tfre [need PTE reads]
-CoWTf.inv+dmb: DMB.SYsTR Tfrim
-#R.TR.inv+dmb+trf: any even number is an invalid entry (including 2); DMB Coe Trfi Frae [need PTE reads and ??]
-MP.RTf.inv+dmb+ctrl: DMB.SYdTW Rfse DpCtrldR Tfrem
-MP.RT.inv+dmb+ctrl-trfi: DMB.SYdWW Rfse DpCtrldT Trfim Frae
+CoRpteTf.inv+addr: Rfse DpAddrsR Tfrem
+CoWTf.inv+dmb: DMB.SYsWR Tfrim
+#R.TR.inv+dmb+trf: any even number is an invalid entry (including 2); DMB Coe Trfi Frae
+MP.RTf.inv+dmb+ctrl: DMB.SYdWW Rfse DpCtrldR Tfrem
+MP.RT.inv+dmb+ctrl-trfi: DMB.SYdWW Rfse DpCtrldW Trfim Frae
 WRC.TRTf.inv+po+dsb-isb: Trfem PodRW Rfse DSB.SY+ISBdRR Tfrem
-#WRC.RRTf.inv+dmb+dsb-isb: start with Rf instead of Trf, as above [need PTE reads]
-#WRC.TRR.inv+po+dsb (assertion negated? But this cycle is the intended one): Trfem PodRW Rfse DSB.SYdRR Frse [need PTE reads]
-CoWinvT+po: PosTR Tfrib
+WRC.RRTf.inv+dmb+dsb-isb: Rfse DSB.SYdRW Rfse DSB.SY+ISBdRR Tfrem
+WRC.TRR.inv+po+dsb: Trfem PodRW Rfse DSB.SYdRR Frse
+CoWinvT+po: PosWR Tfrib
 # Section 8.5: same but break rather than make (mostly?)
-CoWinvT+dsb-isb: DSB.SY+ISBsTR Tfrib
+CoWinvT+dsb-isb: DSB.SY+ISBsWR Tfrib
 #MP.RT.inv+polocdmb+ctrl-isb: Coi DMB Rfe Control+isb (inverse Trf* - mini extension?)
-CoTfT+dsb-isb: Trfeb DSB.SY+ISBsRR Tfreb
+#CoTfT+dsb-isb: Trfeb DSB.SY+ISBsRR Tfreb
 #CoWinvT.EL1+dsbtlbi-dsb-isb: TLBI kind of like a read of x, DSBsTLBI, DSB+ISB, Tfri
 #CoWinvT.EL1+tlbidsb-isb: variant of the above
 #MP.RT.EL1+dsb-tlbiisdsb+dsb-isb: DSBs to this specific kind of TLBI, DSB, Rfe, DSB+ISB, Tfre
