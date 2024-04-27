@@ -1,6 +1,6 @@
 arch = "AArch64"
 name = "CoRpteTf.inv+addr"
-orig = "Rfse DpAddrsR Tfrem"
+orig = "Rfe DpAddrsR Tfrem"
 symbolic = ["pa_0_va_0"]
 
 page_table_setup = """

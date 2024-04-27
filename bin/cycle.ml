@@ -73,23 +73,41 @@ let parse_dependency_type = function
   | s -> raise (Invalid_argument ("Invalid dependency type: " ^ s))
 
 let parse_relation s =
+  let len = String.length s in
+  let need_len n = if len <> n then raise (Invalid_argument ("Invalid relation: " ^ s)) else () in
   if String.starts_with ~prefix:"Po" s then
+    let () = need_len 5 in
     ProgramOrder (location_flag_of_char s.[2], event_type_flag_of_char s.[3], event_type_flag_of_char s.[4])
   else if String.starts_with ~prefix:"Fr" s then
-    FromRead (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
+    if len = 3 then
+      FromRead (`Same, processor_flag_of_char s.[2])
+    else
+      let () = need_len 4 in
+      FromRead (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
   else if String.starts_with ~prefix:"Rf" s then
-    ReadsFrom (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
+    if len = 3 then
+      ReadsFrom (`Same, processor_flag_of_char s.[2])
+    else
+      let () = need_len 4 in
+      ReadsFrom (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
   else if String.starts_with ~prefix:"Ws" s || String.starts_with ~prefix:"Co" s then
-    WriteSerialisation (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
+    if len = 3 then
+      WriteSerialisation (`Same, processor_flag_of_char s.[2])
+    else
+      let () = need_len 4 in
+      WriteSerialisation (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
   else if String.starts_with ~prefix:"Trf" s then
+    let () = need_len 5 in
     TranslationReadsFrom (processor_flag_of_char s.[3], translation_write_flag_of_char s.[4])
   else if String.starts_with ~prefix:"Tfr" s then
+    let () = need_len 5 in
     TranslationFromRead (processor_flag_of_char s.[3], translation_write_flag_of_char s.[4])
   else if is_barrier s then
     let specs = drop_suffix 3 s |> String.split_on_char '+' in
-    let s = String.sub s (String.length s - 3) 3 in
+    let s = String.sub s (len - 3) 3 in
     Barrier (location_flag_of_char s.[0], event_type_flag_of_char s.[1], event_type_flag_of_char s.[2], List.map parse_barrier_spec specs)
   else if String.starts_with ~prefix:"Dp" s then
+    let () = need_len 8 in
     let dependency_type = parse_dependency_type (String.sub s 2 4) in
     Dependency (dependency_type, location_flag_of_char s.[6], event_type_flag_of_char s.[7])
   else

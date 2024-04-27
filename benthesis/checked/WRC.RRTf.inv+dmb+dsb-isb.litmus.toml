@@ -1,6 +1,6 @@
 arch = "AArch64"
 name = "WRC.RRTf.inv+dmb+dsb-isb"
-orig = "Rfse DSB.SYdRW Rfse DSB.SY+ISBdRR Tfrem"
+orig = "Rfe DSB.SYdRW Rfe DSB.SY+ISBdRR Tfrem"
 symbolic = ["pa_0_va_0", "pa_1_va_0"]
 
 page_table_setup = """

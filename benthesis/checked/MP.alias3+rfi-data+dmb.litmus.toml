@@ -1,6 +1,6 @@
 arch = "AArch64"
 name = "MP.alias3+rfi-data+dmb"
-orig = "Rfai DpDatadW Rfse DMB.SYdRR Frse"
+orig = "Rfai DpDatadW Rfe DMB.SYdRR Fre"
 symbolic = ["pa_0_va_0", "pa_1_va_0", "pa_1_va_1"]
 
 page_table_setup = """

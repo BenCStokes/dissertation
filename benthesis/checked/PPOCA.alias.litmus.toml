@@ -1,6 +1,6 @@
 arch = "AArch64"
 name = "PPOCA.alias"
-orig = "DMB.SYdWW Rfse DpCtrldW Rfai DpAddrdR Frse"
+orig = "DMB.SYdWW Rfe DpCtrldW Rfai DpAddrdR Fre"
 symbolic = ["pa_0_va_0", "pa_1_va_0", "pa_1_va_1", "pa_2_va_0"]
 
 page_table_setup = """

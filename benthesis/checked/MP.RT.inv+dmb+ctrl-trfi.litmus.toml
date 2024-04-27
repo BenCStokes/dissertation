@@ -1,6 +1,6 @@
 arch = "AArch64"
 name = "MP.RT.inv+dmb+ctrl-trfi"
-orig = "DMB.SYdWW Rfse DpCtrldW Trfim Frae"
+orig = "DMB.SYdWW Rfe DpCtrldW Trfim Frae"
 symbolic = ["pa_0_va_0", "pa_1_va_0", "pa_1_va_1"]
 
 page_table_setup = """

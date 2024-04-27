@@ -1,22 +1,22 @@
 CoWR.alias: PoaWR Frai
-MP.alias3+rfi-data+dmb: Rfai DpDatadW Rfse DMB.SYdRR Frse
-PPOCA.alias: DMB.SYdWW Rfse DpCtrldW Rfai DpAddrdR Frse
+MP.alias3+rfi-data+dmb: Rfai DpDatadW Rfe DMB.SYdRR Fre
+PPOCA.alias: DMB.SYdWW Rfe DpCtrldW Rfai DpAddrdR Fre
 CoWTf.inv+po: PosWR Tfrim
-CoRpteTf.inv+po: Rfse PosRR Tfrem
+CoRpteTf.inv+po: Rfe PosRR Tfrem
 LB.TT.inv+pos: PodRW Trfem PodRW Trfem
 CoTW1.inv: PosRW Trfim
 CoWTf.inv+dsb-isb: DSB.SY+ISBsWR Tfrim
 #CoTTf.inv+dsb-isb: Trfem DSB.SY+ISBsRR Tfrem
-CoRpteTf.inv+dsb-isb: Rfse DSB.SY+ISBsRR Tfrem
+CoRpteTf.inv+dsb-isb: Rfe DSB.SY+ISBsRR Tfrem
 #CoTTf.inv+ctrl-isb (ignore the EOR): Trfe, control dependency + ISB, Tfre [need combined Dpd/barriers]
-CoRpteTf.inv+addr: Rfse DpAddrsR Tfrem
+CoRpteTf.inv+addr: Rfe DpAddrsR Tfrem
 CoWTf.inv+dmb: DMB.SYsWR Tfrim
 #R.TR.inv+dmb+trf: any even number is an invalid entry (including 2); DMB Coe Trfi Frae
-MP.RTf.inv+dmb+ctrl: DMB.SYdWW Rfse DpCtrldR Tfrem
-MP.RT.inv+dmb+ctrl-trfi: DMB.SYdWW Rfse DpCtrldW Trfim Frae
-WRC.TRTf.inv+po+dsb-isb: Trfem PodRW Rfse DSB.SY+ISBdRR Tfrem
-WRC.RRTf.inv+dmb+dsb-isb: Rfse DSB.SYdRW Rfse DSB.SY+ISBdRR Tfrem
-WRC.TRR.inv+po+dsb: Trfem PodRW Rfse DSB.SYdRR Frse
+MP.RTf.inv+dmb+ctrl: DMB.SYdWW Rfe DpCtrldR Tfrem
+MP.RT.inv+dmb+ctrl-trfi: DMB.SYdWW Rfe DpCtrldW Trfim Frae
+WRC.TRTf.inv+po+dsb-isb: Trfem PodRW Rfe DSB.SY+ISBdRR Tfrem
+WRC.RRTf.inv+dmb+dsb-isb: Rfe DSB.SYdRW Rfe DSB.SY+ISBdRR Tfrem
+WRC.TRR.inv+po+dsb: Trfem PodRW Rfe DSB.SYdRR Fre
 CoWinvT+po: PosWR Tfrib
 # Section 8.5: same but break rather than make (mostly?)
 CoWinvT+dsb-isb: DSB.SY+ISBsWR Tfrib

@@ -1,6 +1,6 @@
 arch = "AArch64"
 name = "CoRpteTf.inv+dsb-isb"
-orig = "Rfse DSB.SY+ISBsRR Tfrem"
+orig = "Rfe DSB.SY+ISBsRR Tfrem"
 symbolic = ["pa_0_va_0"]
 
 page_table_setup = """
