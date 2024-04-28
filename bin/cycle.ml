@@ -2,7 +2,7 @@ type location_flag = [`Same | `Diff | `Aliased]
 type same_pa_location_flag = [`Same | `Aliased]
 type translation_location_flag = [`Same | `Diff] (* TODO: git blame this *)
 
-type event_type_flag = Read | Write
+type event_type_flag = Read | Write (*| TLBI of TLBI_Op.t*)
 
 type translation_write_flag = Make | Break
 
@@ -73,7 +73,69 @@ let parse_dependency_type = function
   | s -> raise (Invalid_argument ("Invalid dependency type: " ^ s))
 
 let parse_relation s =
-  let len = String.length s in
+  (*let fail () = raise (Invalid_argument ("Invalid relation: " ^ s)) in*)
+  let parse p tl s f =
+    Option.bind (p s) @@ fun (s', tok) ->
+    tl s' (f tok) in
+  let stop = function
+    | "" -> Option.some
+    | _ -> fun _ -> None in
+  let (=>) parser f s = parser s (fun () -> f) in
+  let (<|>) f g s = match f s with | None -> g s | some -> some in
+  let raw prefix s =
+    if String.starts_with ~prefix s then
+      Some (drop_prefix (String.length prefix) s, ())
+    else
+      None in
+  let from_char f s =
+    if s = "" then None else
+      Option.map (fun flag -> (drop_prefix 1 s, flag)) (f s.[0]) in
+  let location_flag = from_char (function
+    | 's' -> Some `Same
+    | 'd' -> Some `Diff
+    | 'a' -> Some `Aliased
+    | _ -> None) in
+  let same_pa_location_flag = from_char (function
+    | 's' -> Some `Same
+    | 'a' -> Some `Aliased
+    | _ -> None) in
+  let event_type_flag = from_char (function
+    | 'R' -> Some Read
+    | 'W' -> Some Write
+    | _ -> None) in
+  let processor_flag = from_char (function
+    | 'i' -> Some Internal
+    | 'e' -> Some External
+    | _ -> None) in
+  let same_pa_location_flag_or_same s = match same_pa_location_flag s with
+    | None -> Some (s, `Same)
+    | some -> some in
+  let translation_write_flag = from_char (function
+    | 'b' -> Some Break
+    | 'm' -> Some Make
+    | _ -> None) in
+  begin
+    begin
+      parse (raw "Po") @@ parse location_flag @@ parse event_type_flag @@ parse event_type_flag @@ stop
+        => fun loc e1 e2 -> ProgramOrder (loc, e1, e2)
+    end <|> begin
+      parse (raw "Fr") @@ parse same_pa_location_flag_or_same @@ parse processor_flag @@ stop
+        => fun loc proc -> FromRead (loc, proc)
+    end <|> begin
+      parse (raw "Rf") @@ parse same_pa_location_flag_or_same @@ parse processor_flag @@ stop
+        => fun loc proc -> FromRead (loc, proc)
+    end <|> begin
+      parse (raw "Ws" <|> raw "Co") @@ parse same_pa_location_flag_or_same @@ parse processor_flag @@ stop
+        => fun loc proc -> FromRead (loc, proc)
+    end <|> begin
+      parse (raw "Trf") @@ parse processor_flag @@ parse translation_write_flag @@ stop
+        => fun proc t -> TranslationReadsFrom (proc, t)
+    end <|> begin
+      parse (raw "Tfr") @@ parse processor_flag @@ parse translation_write_flag @@ stop
+        => fun proc t -> TranslationFromRead (proc, t)
+    end
+  end s |> function | None -> raise (Invalid_argument ("Invalid relation: " ^ s)) | Some rel -> rel
+  (*let len = String.length s in
   let need_len n = if len <> n then raise (Invalid_argument ("Invalid relation: " ^ s)) else () in
   if String.starts_with ~prefix:"Po" s then
     let () = need_len 5 in
@@ -111,7 +173,7 @@ let parse_relation s =
     let dependency_type = parse_dependency_type (String.sub s 2 4) in
     Dependency (dependency_type, location_flag_of_char s.[6], event_type_flag_of_char s.[7])
   else
-    raise (Invalid_argument ("Invalid relation: " ^ s))
+    raise (Invalid_argument ("Invalid relation: " ^ s))*)
 
 let parse s = String.split_on_char ' ' s |> List.map parse_relation
 
