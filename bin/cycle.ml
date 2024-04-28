@@ -73,18 +73,19 @@ let parse_dependency_type = function
   | s -> raise (Invalid_argument ("Invalid dependency type: " ^ s))
 
 let parse_relation s =
-  (*let fail () = raise (Invalid_argument ("Invalid relation: " ^ s)) in*)
   let parse p tl s f =
     Option.bind (p s) @@ fun (s', tok) ->
     tl s' (f tok) in
   let stop = function
     | "" -> Option.some
     | _ -> fun _ -> None in
-  let (=>) parser f s = parser s (fun () -> f) in
+  let rest s = Some ("", s) in
+  let (=>) = Fun.flip in
   let (<|>) f g s = match f s with | None -> g s | some -> some in
-  let raw prefix s =
+  let (<<|>>) f g parser s h = ((f parser => h) <|> (g parser => h)) s in
+  let skip prefix parser s f =
     if String.starts_with ~prefix s then
-      Some (drop_prefix (String.length prefix) s, ())
+      parser (drop_prefix (String.length prefix) s) f
     else
       None in
   let from_char f s =
@@ -114,66 +115,57 @@ let parse_relation s =
     | 'b' -> Some Break
     | 'm' -> Some Make
     | _ -> None) in
+  let rec barriers s =
+    let open Instruction in
+    let barrier s =
+      if String.starts_with ~prefix:"ISB" s then
+        Some (drop_prefix 3 s, ArmISBEquiv)
+      else if String.starts_with ~prefix:"DSB." s then
+        let s = drop_prefix 4 s in
+        let param = try Some (parse_barrier_param (String.sub s 0 2)) with Invalid_argument _ -> None in
+        Option.map (fun param -> drop_prefix 2 s, ArmDSBEquiv param) param
+      else if String.starts_with ~prefix:"DMB." s then
+        let s = drop_prefix 4 s in
+        let param = try Some (parse_barrier_param (String.sub s 0 2)) with Invalid_argument _ -> None in
+        Option.map (fun param -> drop_prefix 2 s, ArmDMBEquiv param) param
+      else None in
+    begin 
+      begin
+        parse barrier @@ skip "+" @@ parse barriers @@ parse rest @@ stop => fun b bs rest -> (rest, b::bs)
+      end <|> begin 
+        parse barrier @@ parse rest @@ stop => fun b rest -> (rest, [b])
+      end
+    end s in
+  let dependency_type s =
+    let out = try Some (parse_dependency_type (String.sub s 0 4)) with Invalid_argument _ -> None in
+    Option.map (fun out -> drop_prefix 4 s, out) out in
   begin
     begin
-      parse (raw "Po") @@ parse location_flag @@ parse event_type_flag @@ parse event_type_flag @@ stop
+      skip "Po" @@ parse location_flag @@ parse event_type_flag @@ parse event_type_flag @@ stop
         => fun loc e1 e2 -> ProgramOrder (loc, e1, e2)
     end <|> begin
-      parse (raw "Fr") @@ parse same_pa_location_flag_or_same @@ parse processor_flag @@ stop
+      skip "Fr" @@ parse same_pa_location_flag_or_same @@ parse processor_flag @@ stop
         => fun loc proc -> FromRead (loc, proc)
     end <|> begin
-      parse (raw "Rf") @@ parse same_pa_location_flag_or_same @@ parse processor_flag @@ stop
-        => fun loc proc -> FromRead (loc, proc)
+      skip "Rf" @@ parse same_pa_location_flag_or_same @@ parse processor_flag @@ stop
+        => fun loc proc -> ReadsFrom (loc, proc)
     end <|> begin
-      parse (raw "Ws" <|> raw "Co") @@ parse same_pa_location_flag_or_same @@ parse processor_flag @@ stop
-        => fun loc proc -> FromRead (loc, proc)
+      (skip "Co" <<|>> skip "Ws") @@ parse same_pa_location_flag_or_same @@ parse processor_flag @@ stop
+        => fun loc proc -> WriteSerialisation (loc, proc)
     end <|> begin
-      parse (raw "Trf") @@ parse processor_flag @@ parse translation_write_flag @@ stop
+      skip "Trf" @@ parse processor_flag @@ parse translation_write_flag @@ stop
         => fun proc t -> TranslationReadsFrom (proc, t)
     end <|> begin
-      parse (raw "Tfr") @@ parse processor_flag @@ parse translation_write_flag @@ stop
+      skip "Tfr" @@ parse processor_flag @@ parse translation_write_flag @@ stop
         => fun proc t -> TranslationFromRead (proc, t)
+    end <|> begin
+      parse barriers @@ parse location_flag @@ parse event_type_flag @@ parse event_type_flag @@ stop
+        => fun bs loc e1 e2 -> Barrier (loc, e1, e2, bs)
+    end <|> begin
+      skip "Dp" @@ parse dependency_type @@ parse location_flag @@ parse event_type_flag @@ stop
+        => fun dt loc e -> Dependency (dt, loc, e)
     end
   end s |> function | None -> raise (Invalid_argument ("Invalid relation: " ^ s)) | Some rel -> rel
-  (*let len = String.length s in
-  let need_len n = if len <> n then raise (Invalid_argument ("Invalid relation: " ^ s)) else () in
-  if String.starts_with ~prefix:"Po" s then
-    let () = need_len 5 in
-    ProgramOrder (location_flag_of_char s.[2], event_type_flag_of_char s.[3], event_type_flag_of_char s.[4])
-  else if String.starts_with ~prefix:"Fr" s then
-    if len = 3 then
-      FromRead (`Same, processor_flag_of_char s.[2])
-    else
-      let () = need_len 4 in
-      FromRead (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
-  else if String.starts_with ~prefix:"Rf" s then
-    if len = 3 then
-      ReadsFrom (`Same, processor_flag_of_char s.[2])
-    else
-      let () = need_len 4 in
-      ReadsFrom (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
-  else if String.starts_with ~prefix:"Ws" s || String.starts_with ~prefix:"Co" s then
-    if len = 3 then
-      WriteSerialisation (`Same, processor_flag_of_char s.[2])
-    else
-      let () = need_len 4 in
-      WriteSerialisation (same_pa_location_flag_of_char s.[2], processor_flag_of_char s.[3])
-  else if String.starts_with ~prefix:"Trf" s then
-    let () = need_len 5 in
-    TranslationReadsFrom (processor_flag_of_char s.[3], translation_write_flag_of_char s.[4])
-  else if String.starts_with ~prefix:"Tfr" s then
-    let () = need_len 5 in
-    TranslationFromRead (processor_flag_of_char s.[3], translation_write_flag_of_char s.[4])
-  else if is_barrier s then
-    let specs = drop_suffix 3 s |> String.split_on_char '+' in
-    let s = String.sub s (len - 3) 3 in
-    Barrier (location_flag_of_char s.[0], event_type_flag_of_char s.[1], event_type_flag_of_char s.[2], List.map parse_barrier_spec specs)
-  else if String.starts_with ~prefix:"Dp" s then
-    let () = need_len 8 in
-    let dependency_type = parse_dependency_type (String.sub s 2 4) in
-    Dependency (dependency_type, location_flag_of_char s.[6], event_type_flag_of_char s.[7])
-  else
-    raise (Invalid_argument ("Invalid relation: " ^ s))*)
 
 let parse s = String.split_on_char ' ' s |> List.map parse_relation
 
