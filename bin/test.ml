@@ -4,6 +4,7 @@ type initial_value = Constant of int64
                    | VirtualAddress of string
                    | PTE of string
                    | MkDesc of string
+                   | Page of string
 
 
 let pp_hex_constant fmt n =
@@ -17,6 +18,7 @@ let pp_initial_value fmt = function
   | VirtualAddress address -> fprintf fmt "%s" address
   | PTE va -> fprintf fmt "pte3(%s, page_table_base)" va
   | MkDesc pa -> fprintf fmt "mkdesc3(oa=%s)" pa
+  | Page va -> fprintf fmt "extz(page(%s), 64)" va
 
 module IntMap = Map.Make(Int)
 module StringMap = Map.Make(String)
@@ -24,12 +26,13 @@ module StringSet = Set.Make(String)
 
 type thread =
   {
+    el1: bool;
     setup : initial_value IntMap.t;
     instructions : Instruction.t list;
     handler : (int * string) option; (* TODO: fix this representation *)
   }
 
-let new_thread = { setup = IntMap.empty; instructions = []; handler = None; }
+let new_thread = { el1 = false; setup = IntMap.empty; instructions = []; handler = None; }
 
 module AssertionValue = struct
   type t = Constant of int64
@@ -74,12 +77,14 @@ module Printer(Arch : Arch.Sig) = struct
       | None -> ()
       | Some (addr, _) -> fprintf fmt "VBAR_EL1 = \"extz(%#x, 64)\"\n\n" (addr - 0x400)
     end;
+    if thread.el1 then
+      fprintf fmt "\"PSTATE.EL\" = \"0b01\"\n\n";
 
     match thread.handler with
       | None -> ()
       | Some (addr, code) ->
         fprintf fmt "[section.thread%d_el1_handler]\n" index;
-        fprintf fmt "address = \"%#x\"\n" addr;
+        fprintf fmt "address = \"%#x\"\n" (if thread.el1 then addr - 0x400 else addr);
         fprintf fmt "code = \"\"\"\n%s\"\"\"\n\n" code
 
   let print_types fmt test =

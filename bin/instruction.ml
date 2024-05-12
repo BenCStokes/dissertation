@@ -15,4 +15,5 @@ type t = Load of register * register
        | ControlDependency of register
        | DataDependency of register * register
        | AddressDependency of register * register
+       | ArmTLBIEquiv of TLBI_Op.t * register
        (* ... *)

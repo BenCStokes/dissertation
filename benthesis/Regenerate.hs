@@ -1,9 +1,16 @@
 import System.Cmd (system)
 import Control.Monad (forM_, void)
 
+replace "" = ""
+replace ('(':s) = '\\':'(':replace s
+replace (')':s) = '\\':')':replace s
+replace (c:s) = c:replace s
+
 run line =
-  let (name, _:_:cycle) = span (/= ':') line in
+  let (name, _:_:cycle') = span (/= ':') line in
+  let cycle = replace cycle' in
   system ("cd ~/dissertation; dune exec dissertation -- -stdout -name " ++ name ++ " -cycle " ++ cycle ++ " > ~/dissertation/benthesis/new/" ++ name ++ ".litmus.toml")
+  --system ("cd ~/dissertation; { /usr/bin/time -f \"%E\" ./_build/install/default/bin/dissertation -stdout -name " ++ name ++ " -cycle " ++ cycle ++ " >> ./benthesis/alloutput; } 2>> ./benthesis/benchmark")
 
 main = do
   system "mkdir ~/dissertation/benthesis/new"
@@ -12,4 +19,4 @@ main = do
     '#':_ -> return ()
     _ -> void (run line)
   system "cd ~/dissertation/benthesis; diff -ur checked new"
-  system "rm -r ~/dissertation/benthesis/new"
+  --system "rm -r ~/dissertation/benthesis/new"

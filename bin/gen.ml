@@ -96,7 +96,7 @@ let get_at_pte cycle =
           IntMap.update true_index (function | None -> Some false | v -> v) true_index_to_at_pte in
       let from_rhs = rhs_must_be_at_pte rel in
       let true_index = begin match rel with
-        | FromRead _ | ReadsFrom _ -> true_index
+        | FromRead _ | ReadsFrom _ | WriteSerialisation _ -> true_index
         | _ -> true_index + 1
       end in
       go (index + 1) true_index from_rhs index_to_true_index true_index_to_at_pte cycle in
@@ -212,6 +212,20 @@ let generate_test at_pte name orig cycle write_values translation_write_flags lo
           let threads = { thread with setup; instructions } :: List.tl test.threads in
           let writes_by_location = IntMap.update pa (function | None -> Some (List.hd write_values) | Some n -> Some (max n (List.hd write_values))) writes_by_location in
           go ({ test with threads }) cycle (List.tl write_values) translation_write_flags loc_flag Internal writes_by_location
+      | ProgramOrder (_, TLBI op, _) ->
+        let thread = List.hd test.threads in
+        (* let (setup, result_to) = new_reg thread.setup (Constant 0L) in *)
+        let setup = thread.setup in
+        let va_name = Printf.sprintf "pa_%d_va_%d" pa va in
+        let (setup, loc_reg) = if at_pte then
+          failwith "TLBI at PTE"
+        else (*if loc_diff = `Same && proc_diff = Internal then
+          (setup, fst (List.find (fun (_, v) -> v = VirtualAddress va_name) (IntMap.bindings setup)))
+        else*)
+          new_reg setup (Page va_name) in
+        let instructions = thread.instructions @ [ArmTLBIEquiv (op, loc_reg)] in
+        let threads = { thread with setup; instructions; el1 = true } :: List.tl test.threads in
+        go ({ test with threads }) cycle write_values translation_write_flags `Diff Internal writes_by_location
       | Barrier (loc_flag, Write, _, specs) ->
         if at_pte then
           let thread = List.hd test.threads in
@@ -260,6 +274,20 @@ let generate_test at_pte name orig cycle write_values translation_write_flags lo
         let instructions = thread.instructions @ Load (result_to, loc_reg) :: specs in
         let threads = { thread with setup; instructions } :: List.tl test.threads in
         go ({ test with threads }) cycle write_values translation_write_flags (if at_pte then `Diff else loc_flag) Internal writes_by_location
+      | Barrier (_, TLBI op, _, specs) ->
+        let thread = List.hd test.threads in
+        (* let (setup, result_to) = new_reg thread.setup (Constant 0L) in *)
+        let setup = thread.setup in
+        let va_name = Printf.sprintf "pa_%d_va_%d" pa va in
+        let (setup, loc_reg) = if at_pte then
+          failwith "TLBI at PTE"
+        else (*if loc_diff = `Same && proc_diff = Internal then
+          (setup, fst (List.find (fun (_, v) -> v = VirtualAddress va_name) (IntMap.bindings setup)))
+        else*)
+          new_reg setup (Page va_name) in
+        let instructions = thread.instructions @ ArmTLBIEquiv (op, loc_reg) :: specs in
+        let threads = { thread with setup; instructions; el1 = true } :: List.tl test.threads in
+        go ({ test with threads }) cycle write_values translation_write_flags `Diff Internal writes_by_location
       | Dependency (dependency_type, loc_flag, _) ->
         let thread = List.hd test.threads in
         let (setup, result_to) = new_reg thread.setup (Constant 0L) in
@@ -273,7 +301,7 @@ let generate_test at_pte name orig cycle write_values translation_write_flags lo
         let dependency_instructions = match dependency_type with
           | Control -> [Instruction.ControlDependency result_to]
           | Data -> [Instruction.DataDependency (result_to, IntMap.cardinal setup)]
-          | Address -> [Instruction.AddressDependency (result_to, 1 + IntMap.cardinal setup)] in (* FIXME wrong address sometimes *)
+          | Address -> [Instruction.AddressDependency (result_to, 1 + IntMap.cardinal setup)] in (* FIXME wrong address sometimes *) (* wait... is it? *)
         let instructions = thread.instructions @ Load (result_to, loc_reg) :: dependency_instructions in
         let threads = { thread with setup; instructions } :: List.tl test.threads in
         go ({ test with threads }) cycle write_values translation_write_flags (if at_pte then `Diff else loc_flag) Internal writes_by_location
@@ -369,7 +397,7 @@ let generate_test at_pte name orig cycle write_values translation_write_flags lo
         let handler = Some (0x1000 * (thread_id + 1) + 0x400, Printf.sprintf "    MOV X%d,#1\n\n    MRS X13,ELR_EL1\n    ADD X13,X13,#4\n    MSR ELR_EL1,X13\n    ERET\n" read_result_reg) in
         let instructions = thread.instructions @ [Store (value_reg, loc_reg)] in
         let threads = match proc_flag with
-          | Internal -> { setup; instructions; handler } :: List.tl test.threads
+          | Internal -> { thread with setup; instructions; handler } :: List.tl test.threads
           | External -> { new_thread with handler } :: { thread with setup; instructions } :: List.tl test.threads in
           (* let writes_by_location = IntMap.update pa (function | None -> Some (List.hd write_values) | Some n -> Some (max n (List.hd write_values))) writes_by_location in *)
         let thread_num = if cycle = [] && proc_flag = External then 0 else List.length threads - 1 in
@@ -396,8 +424,8 @@ let generate_test at_pte name orig cycle write_values translation_write_flags lo
         let handler = Some (0x1000 * (thread_id + 1) + 0x400, Printf.sprintf "    MOV X%d,#1\n\n    MRS X13,ELR_EL1\n    ADD X13,X13,#4\n    MSR ELR_EL1,X13\n    ERET\n" result_to) in
         let instructions = thread.instructions @ [Load (result_to, loc_reg)] in
         let threads = match proc_flag with
-          | Internal -> { setup; instructions; handler } :: List.tl test.threads
-          | External -> new_thread :: { setup; instructions; handler } :: List.tl test.threads in
+          | Internal -> { thread with setup; instructions; handler } :: List.tl test.threads
+          | External -> new_thread :: { thread with setup; instructions; handler } :: List.tl test.threads in
         let expected = match translation_write_flag with
           | Make -> 1L
           | Break -> 0L in
@@ -420,7 +448,7 @@ let generate_test at_pte name orig cycle write_values translation_write_flags lo
       let rec make_instructions i instructions =
         let instructions = Instruction.Load (i, 0) :: instructions in
         if i = 1 then instructions else make_instructions (i - 1) instructions in
-      let observer = { setup = IntMap.singleton 0 (VirtualAddress va_name); instructions = make_instructions writes []; handler = None; } in
+      let observer = { el1 = false; setup = IntMap.singleton 0 (VirtualAddress va_name); instructions = make_instructions writes []; handler = None; } in
       let thread_id = List.length test.threads in
       { test with
           threads = observer :: test.threads;

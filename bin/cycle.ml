@@ -2,7 +2,7 @@ type location_flag = [`Same | `Diff | `Aliased]
 type same_pa_location_flag = [`Same | `Aliased]
 type translation_location_flag = [`Same | `Diff] (* TODO: git blame this *)
 
-type event_type_flag = Read | Write (*| TLBI of TLBI_Op.t*)
+type event_type_flag = Read | Write | TLBI of TLBI_Op.t
 
 type translation_write_flag = Make | Break
 
@@ -100,10 +100,21 @@ let parse_relation s =
     | 's' -> Some `Same
     | 'a' -> Some `Aliased
     | _ -> None) in
-  let event_type_flag = from_char (function
+  let event_type_flag s =
+    if String.starts_with ~prefix:"R" s then
+      Some (drop_prefix 1 s, Read)
+    else if String.starts_with ~prefix:"W" s then
+      Some (drop_prefix 1 s, Write)
+    else if String.starts_with ~prefix:"T(" s then
+      let s = drop_prefix 2 s in
+      Option.bind (String.index_opt s ')') (fun i ->
+        let op = try Some (TLBI_Op.parse (String.sub s 0 i)) with Invalid_argument _ -> None in
+        Option.map (fun op -> (drop_prefix (i+1) s, TLBI op)) op)
+    else None in
+  (* let event_type_flag = from_char (function
     | 'R' -> Some Read
     | 'W' -> Some Write
-    | _ -> None) in
+    | _ -> None) in *)
   let processor_flag = from_char (function
     | 'i' -> Some Internal
     | 'e' -> Some External
