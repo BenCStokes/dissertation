@@ -35,7 +35,7 @@ VBAR_EL1 = "extz(0x1000, 64)"
 [section.thread0_el1_handler]
 address = "0x1400"
 code = """
-    MOV X4,#1
+    MOV X4,#0xFFFFFFFFFFFFFFFF
 
     MRS X13,ELR_EL1
     ADD X13,X13,#4
@@ -57,4 +57,4 @@ R2 = "extz(0x1, 64)"
 R3 = "pa_0_va_0"
 
 [final]
-assertion = "0:X0 = 1 & 0:X4 = 0 & 0:X4 = 0"
+assertion = "0:X0 = 1 & 0:X4 = 0"

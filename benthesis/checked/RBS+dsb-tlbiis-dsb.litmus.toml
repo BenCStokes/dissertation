@@ -1,0 +1,56 @@
+arch = "AArch64"
+name = "RBS+dsb-tlbiis-dsb"
+orig = "Tfreb DSB.SYsWT(VAE1IS) DSB.SYaT(VAE1IS)W Rfae"
+symbolic = ["pa_0_va_0", "pa_0_va_1"]
+
+page_table_setup = """
+    physical pa_0;
+    pa_0_va_0 |-> pa_0;
+    pa_0_va_1 |-> pa_0;
+    pa_0_va_0 ?-> invalid;
+    *pa_0 = 0;
+    identity 0x2000 with code;
+"""
+
+[thread.0]
+code = """
+    STR X0,[X1]
+    DSB SY
+    TLBI VAE1IS,X2
+    DSB SY
+    STR X3,[X4]
+"""
+
+[thread.0.reset]
+R0 = "extz(0x0, 64)"
+R1 = "pte3(pa_0_va_0, page_table_base)"
+R2 = "extz(page(pa_0_va_0), 64)"
+R3 = "extz(0x1, 64)"
+R4 = "pa_0_va_1"
+
+"PSTATE.EL" = "0b01"
+
+[thread.1]
+code = """
+    LDR X0,[X1]
+"""
+
+[thread.1.reset]
+R0 = "extz(0x0, 64)"
+R1 = "pa_0_va_0"
+
+VBAR_EL1 = "extz(0x2000, 64)"
+
+[section.thread1_el1_handler]
+address = "0x2400"
+code = """
+    MOV X0,#0xFFFFFFFFFFFFFFFF
+
+    MRS X13,ELR_EL1
+    ADD X13,X13,#4
+    MSR ELR_EL1,X13
+    ERET
+"""
+
+[final]
+assertion = "1:X0 = 1"

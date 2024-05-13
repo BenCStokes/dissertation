@@ -7,7 +7,7 @@ CoRpteTf.inv+po: Rfe PosRR Tfrem
 LB.TT.inv+pos: PodRW Trfem PodRW Trfem
 CoTW1.inv: PosRW Trfim
 CoWTf.inv+dsb-isb: DSB.SY+ISBsWR Tfrim
-#CoTTf.inv+dsb-isb: Trfem DSB.SY+ISBsRR Tfrem
+CoTTf.inv+dsb-isb: Trfem DSB.SY+ISBsRR Tfrem
 CoRpteTf.inv+dsb-isb: Rfe DSB.SY+ISBsRR Tfrem
 #CoTTf.inv+ctrl-isb (ignore the EOR): Trfe, control dependency + ISB, Tfre [need combined Dpd/barriers]
 CoRpteTf.inv+addr: Rfe DpAddrsR Tfrem
@@ -22,10 +22,10 @@ CoWinvT+po: PosWR Tfrib
 # Section 8.5: same but break rather than make (mostly?)
 CoWinvT+dsb-isb: DSB.SY+ISBsWR Tfrib
 #MP.RT.inv+polocdmb+ctrl-isb: Coi DMB Rfe Control+isb (inverse Trf* - mini extension?)
-#CoTfT+dsb-isb: Trfeb DSB.SY+ISBsRR Tfreb
+CoTfT+dsb-isb: Trfeb DSB.SY+ISBsRR Tfreb
 CoWinvT.EL1+dsbtlbi-dsb-isb: DSB.SYsWT(VAE1) DSB.SY+ISBsT(VAE1)R Tfrib
 CoWinvT.EL1+tlbidsb-isb: PosWT(VAE1) DSB.SY+ISBsT(VAE1)R Tfrib
 MP.RT.EL1+dsb-tlbiisdsb+dsb-isb: DSB.SYsWT(VAE1IS) DSB.SYdT(VAE1IS)W Rfe DSB.SY+ISBdRR Tfreb
 RBS+dsb-tlbiis-dsb: Tfreb DSB.SYsWT(VAE1IS) DSB.SYaT(VAE1IS)W Rfae
 #RBS+dsb-tlbiisdsb+poloc: same but thread 1 reads x twice
-BBM+dsb-tlbiis-dsb: Tfreb DSB.SYsWT(VAE1IS) DSB.SYsT(VAE1IS)W PodWW Rfe PodRR
+#BBM+dsb-tlbiis-dsb: Tfreb DSB.SYsWT(VAE1IS) DSB.SYsT(VAE1IS)W PodWW Rfe PodRR: not quite right

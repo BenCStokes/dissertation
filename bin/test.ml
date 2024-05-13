@@ -37,10 +37,19 @@ let new_thread = { el1 = false; setup = IntMap.empty; instructions = []; handler
 module AssertionValue = struct
   type t = Constant of int64
          | PTE of string
+         | FaultIndicator
+
+  let normalise = function
+    | FaultIndicator -> Constant 0xFFFFFFFFFFFFFFFFL
+    | v -> v
+
+  let equal v1 v2 = normalise v1 = normalise v2
 end
 
 type condition = RegisterAssertion of int * int * AssertionValue.t
                | LocationAssertion of string * int64
+               | NegatedRegisterAssertion of int * int * AssertionValue.t
+               | AssertionContradiction
 
 type t =
   {
@@ -54,10 +63,13 @@ type t =
     assertion : condition list;
   }
 
-let pp_condition = function
+let rec pp_condition = function
   | RegisterAssertion (proc, reg, AssertionValue.Constant v) -> sprintf "%d:X%d = %Ld" proc reg v
   | RegisterAssertion (proc, reg, AssertionValue.PTE pa) -> sprintf "%d:X%d = mkdesc3(oa=%s)" proc reg pa
+  | RegisterAssertion (proc, reg, AssertionValue.FaultIndicator) -> sprintf "%d:X%d = exts(0xF, 64)" proc reg
+  | NegatedRegisterAssertion (proc, reg, v) -> sprintf "~(%s)" (pp_condition (RegisterAssertion (proc, reg, v)))
   | LocationAssertion (loc, v) -> sprintf "*%s = %Ld" loc v
+  | AssertionContradiction -> "false"
 
 let pp_assertion fmt = function
   | [] -> fprintf fmt "<empty>"

@@ -18,5 +18,5 @@ main = do
   forM_ cycles $ \line -> case line of
     '#':_ -> return ()
     _ -> void (run line)
-  system "cd ~/dissertation/benthesis; diff -ur checked new"
+  system "cd ~/dissertation/benthesis; diff -r checked new"
   --system "rm -r ~/dissertation/benthesis/new"

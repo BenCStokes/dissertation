@@ -1,36 +1,37 @@
 arch = "AArch64"
-name = "CoRpteTf.inv+dsb-isb"
-orig = "Rfe DSB.SY+ISBsRR Tfrem"
+name = "CoTfT+dsb-isb"
+orig = "Trfeb DSB.SY+ISBsRR Tfreb"
 symbolic = ["pa_0_va_0"]
 
 page_table_setup = """
     physical pa_0;
-    pa_0_va_0 |-> invalid;
-    pa_0_va_0 ?-> pa_0;
+    pa_0_va_0 |-> pa_0;
+    pa_0_va_0 ?-> invalid;
     *pa_0 = 0;
     identity 0x1000 with code;
 """
 
 [thread.0]
 code = """
-    LDR X0,[X1]
+    LDR X14,[X1]
+    MOV X0,X14
     DSB SY
     ISB
-    LDR X2,[X3]
+    LDR X14,[X1]
+    MOV X2,X14
 """
 
 [thread.0.reset]
 R0 = "extz(0x0, 64)"
-R1 = "pte3(pa_0_va_0, page_table_base)"
+R1 = "pa_0_va_0"
 R2 = "extz(0x0, 64)"
-R3 = "pa_0_va_0"
 
 VBAR_EL1 = "extz(0x1000, 64)"
 
 [section.thread0_el1_handler]
 address = "0x1400"
 code = """
-    MOV X2,#0xFFFFFFFFFFFFFFFF
+    MOV X14,#0xFFFFFFFFFFFFFFFF
 
     MRS X13,ELR_EL1
     ADD X13,X13,#4
@@ -44,8 +45,8 @@ code = """
 """
 
 [thread.1.reset]
-R0 = "mkdesc3(oa=pa_0)"
+R0 = "extz(0x0, 64)"
 R1 = "pte3(pa_0_va_0, page_table_base)"
 
 [final]
-assertion = "0:X0 = mkdesc3(oa=pa_0) & 0:X2 = exts(0xF, 64)"
+assertion = "0:X0 = exts(0xF, 64) & ~(0:X2 = exts(0xF, 64))"

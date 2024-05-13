@@ -17,6 +17,7 @@ type instruction = STR of register * register
                  | ADD of register * register * register
                  | EOR of register * register * register
                  | TLBI of TLBI_Op.t * register
+                 | MOV of register * register
                  (* ... *)
 
 let to_concrete_instructions = let open Instruction in function
@@ -29,6 +30,7 @@ let to_concrete_instructions = let open Instruction in function
   | DataDependency (reg1, reg2)
   | AddressDependency (reg1, reg2) -> [EOR (Register 14, id_to_register reg1, id_to_register reg1); ADD (id_to_register reg2, id_to_register reg2, Register 14)]
   | ArmTLBIEquiv (op, reg) -> [TLBI (op, id_to_register reg)]
+  | Move (dst, src) -> [MOV (id_to_register dst, id_to_register src)]
 
 let pp_barrier_param fmt = let open Instruction in function
   | SY -> fprintf fmt "SY"
@@ -44,3 +46,4 @@ let print_asm fmt = function
   | ADD (dst, src1, src2) -> fprintf fmt "ADD %a,%a,%a" pp_register dst pp_register src1 pp_register src2
   | EOR (dst, lhs, rhs) -> fprintf fmt "EOR %a,%a,%a" pp_register dst pp_register lhs pp_register rhs
   | TLBI (op, reg) -> fprintf fmt "TLBI %s,%a" (TLBI_Op.to_string op) pp_register reg
+  | MOV (dst, src) -> fprintf fmt "MOV %a,%a" pp_register dst pp_register src

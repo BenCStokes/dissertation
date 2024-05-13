@@ -43,4 +43,4 @@ R4 = "extz(0x1, 64)"
 R5 = "pa_0_va_0"
 
 [final]
-assertion = "0:X0 = 1 & 1:X2 = 1 & 0:X2 = 0"
+assertion = "0:X0 = 1 & 0:X2 = 0 & 1:X2 = 1"
