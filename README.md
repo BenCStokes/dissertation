@@ -3,5 +3,5 @@ Source code for my undergrad dissertation, _Test generation for relaxed virtual 
 Run with e.g.
 
 ```
-dune exec genonce -- -name MP.RT.inv+dmb+ctrl-trfi -cycle DMB.SYdWW Rfe DpCtrldW Trfim Frae
+mkdir generated && dune exec genonce -- -name MP.RT.inv+dmb+ctrl-trfi DMB.SYdWW Rfe DpCtrldW Trfim Frae
 ```
