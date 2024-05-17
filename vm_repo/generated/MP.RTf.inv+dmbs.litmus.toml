@@ -1,0 +1,56 @@
+arch = "AArch64"
+name = "MP.RTf.inv+dmbs"
+orig = "DMB.STdWW Rfe DMB.SYdRR Tfrem"
+symbolic = ["pa_0_va_0", "pa_1_va_0"]
+
+page_table_setup = """
+    physical pa_0 pa_1;
+    pa_0_va_0 |-> pa_0;
+    pa_1_va_0 |-> invalid;
+    pa_1_va_0 ?-> pa_1;
+    *pa_0 = 0;
+    *pa_1 = 0;
+    identity 0x1000 with code;
+"""
+
+[thread.0]
+code = """
+    LDR X0,[X1]
+    DMB SY
+    LDR X2,[X3]
+"""
+
+[thread.0.reset]
+R0 = "extz(0x0, 64)"
+R1 = "pa_0_va_0"
+R2 = "extz(0x0, 64)"
+R3 = "pa_1_va_0"
+
+VBAR_EL1 = "extz(0x1000, 64)"
+
+[section.thread0_el1_handler]
+address = "0x1400"
+code = """
+    MOV X2,#0xFFFFFFFFFFFFFFFF
+
+    MRS X13,ELR_EL1
+    ADD X13,X13,#4
+    MSR ELR_EL1,X13
+    ERET
+"""
+
+[thread.1]
+code = """
+    STR X0,[X1]
+    DMB ST
+    STR X2,[X3]
+"""
+
+[thread.1.reset]
+R0 = "mkdesc3(oa=pa_1)"
+R1 = "pte3(pa_1_va_0, page_table_base)"
+R2 = "extz(0x1, 64)"
+R3 = "pa_0_va_0"
+
+[final]
+assertion = "0:X0 = 1 & 0:X2 = exts(0xF, 64)"

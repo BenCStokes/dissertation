@@ -1,37 +1,27 @@
-open Gen
+(* let usage = "gen [options]"
 
-(*let cycle =
-  (*[FromRead (`Same, Internal); ProgramOrder (`Same, Write, Read)]*) (* CoWR? *)
-  (*[FromRead (`Aliased, Internal); ProgramOrder (`Aliased, Write, Read)]*) (* CoWR.alias *)
-  (*[FromRead (`Aliased, External); ReadsFrom (`Same, External); ProgramOrder (`Aliased, Read, Read)]*) (* CoRR0.alias+po *)
-  (*[FromRead (`Same, External); ReadsFrom (`Same, External); ProgramOrder (`Same, Read, Read)]*) (* CoRR0+po? *)
-  (*[ProgramOrder (`Same, Write, Read); FromRead (`Same, External); WriteSerialisation (`Same, External)]*)
+let safe = ref ""
+let relaxed = ref ""
+let dir_name = ref "."
+let size = ref 6
+let nprocs = ref 4
 
-let test = test_from_cycle cycle*)
-
-let usage = "testgen [-name <name>] -cycle <cycle>"
-let cycle = ref []
-let orig = ref ""
-let test_name = ref "PLACEHOLDER"
-let use_stdout = ref false
-let dir_name = ref "generated"
-let overwrite = ref false
 let args = [
-  "-stdout", Arg.Set use_stdout, "Output the generated test to stdout";
-  "-overwrite", Arg.Set overwrite, "Overwrite the test if it already exists (default: false)";
-  "-name", Arg.Set_string test_name, "The name of the test";
-  "-dir", Arg.Set_string dir_name, "Directory to put the generated test in";
-  "-cycle", Arg.Rest_all (fun tokens ->
-    cycle := List.map Cycle.parse_relation tokens;
-    orig := String.concat " " tokens),
-    "The cycle to generate the test from";
+  "-safe", Arg.Set_string safe, "<SafeList> Comma-separated list of safe relations";
+  "-relaxed", Arg.Set_string relaxed, "<Relaxed> Relation to be relaxed";
+  "-dir", Arg.Set_string dir_name, "<dir> Directory to put generated tests in (default: .)";
+  "-size", Arg.Set_int size, "<n> Maximum size of generated cycles";
+  "-nprocs", Arg.Set_int nprocs, "<n> Maximum number of threads in generated tests";
 ]
-let () = Arg.parse args (fun arg -> print_endline ("Ignored anonymous argument: " ^ arg)) usage
+let () = Arg.parse args (fun _ -> raise (Arg.Bad "Extra arguments given")) "Usage here"
 
-module TestPrinter = Test.Printer(AArch64)
+(* let select_arch : string -> (module Arch.Sig) = function
+  | "AArch64" -> (module AArch64)
+  | s -> raise (Invalid_argument ("Unrecognised architecture: " ^ s)) *)
+
 let () =
-  let test = test_from_cycle !test_name !orig !cycle in
-  let file_name = !dir_name ^ "/" ^ !test_name ^ ".litmus.toml" in
-  let out = if !use_stdout || (Sys.file_exists file_name && not !overwrite) then stdout else open_out file_name in
-  let formatter =  Format.formatter_of_out_channel out in
-  Format.fprintf formatter "%a\n" TestPrinter.pp_test test
+  let safe = String.split_on_char ',' !safe in
+  let safe = List.map Cycle.parse_relation safe in
+  let relaxed = Cycle.parse_relation !relaxed in
+  let _tests = CycleGen.gen_cycles safe relaxed !size !nprocs in
+  () *)

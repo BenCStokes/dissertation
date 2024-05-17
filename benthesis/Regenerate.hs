@@ -9,7 +9,7 @@ replace (c:s) = c:replace s
 run line =
   let (name, _:_:cycle') = span (/= ':') line in
   let cycle = replace cycle' in
-  system ("cd ~/dissertation; dune exec dissertation -- -stdout -name " ++ name ++ " -cycle " ++ cycle ++ " > ~/dissertation/benthesis/new/" ++ name ++ ".litmus.toml")
+  system ("cd ~/dissertation; dune exec genonce -- -stdout -name " ++ name ++ " " ++ cycle ++ " > ~/dissertation/benthesis/new/" ++ name ++ ".litmus.toml")
   --system ("cd ~/dissertation; { /usr/bin/time -f \"%E\" ./_build/install/default/bin/dissertation -stdout -name " ++ name ++ " -cycle " ++ cycle ++ " >> ./benthesis/alloutput; } 2>> ./benthesis/benchmark")
 
 main = do

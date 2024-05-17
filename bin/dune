@@ -1,4 +1,11 @@
 (executable
- (public_name dissertation)
+ (public_name genonce)
+ (name once)
+ (libraries dissertation)
+ (modules once))
+
+(executable
+ (public_name gen)
  (name main)
- (libraries dissertation))
+ (libraries dissertation)
+ (modules main))

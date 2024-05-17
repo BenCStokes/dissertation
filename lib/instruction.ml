@@ -1,10 +1,11 @@
 type register = int
 
-type arm_barrier_param = SY | LD
+type arm_barrier_param = SY | LD | ST
 
 let parse_barrier_param = function
   | "SY" -> SY
   | "LD" -> LD
+  | "ST" -> ST
   | p -> raise (Invalid_argument ("Invalid barrier parameter: " ^ p))
 
 type t = Load of register * register

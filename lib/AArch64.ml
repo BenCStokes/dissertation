@@ -35,6 +35,7 @@ let to_concrete_instructions = let open Instruction in function
 let pp_barrier_param fmt = let open Instruction in function
   | SY -> fprintf fmt "SY"
   | LD -> fprintf fmt "LD"
+  | ST -> fprintf fmt "ST"
 
 let print_asm fmt = function
   | STR (value, location) -> fprintf fmt "STR %a,[%a]" pp_register value pp_register location
